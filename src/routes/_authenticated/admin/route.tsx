@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
       .select("role")
       .eq("user_id", data.user.id);
     const isAdmin = roles?.some((r) => r.role === "administrador");
-    if (!isAdmin) throw redirect({ to: "/nueva-solicitud" });
+    if (!isAdmin) throw redirect({ to: "/forbidden" });
   },
   component: () => <Outlet />,
 });

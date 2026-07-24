@@ -1,10 +1,18 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, PlusCircle, ClipboardList, LogOut, ShieldCheck, BarChart3, Sun, Moon, Menu, X, Bell } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ClipboardList, LogOut, ShieldCheck, BarChart3, Sun, Moon, Menu, X, Bell, Users, UserCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function useTheme() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -30,6 +38,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(0);
+  const [displayName, setDisplayName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("nombre, apellido")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setDisplayName(`${data.nombre ?? ""} ${data.apellido ?? ""}`.trim());
+      });
+  }, [user]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -58,73 +79,92 @@ export function AppShell({ children }: { children: ReactNode }) {
   const empLinks = [
     { to: "/nueva-solicitud", label: "Nueva solicitud", icon: PlusCircle },
     { to: "/mis-solicitudes", label: "Mis solicitudes", icon: ClipboardList },
+    { to: "/perfil", label: "Mi perfil", icon: UserCircle },
   ];
   const adminLinks = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
     { to: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
+    { to: "/admin/usuarios", label: "Usuarios", icon: Users },
+    { to: "/perfil", label: "Mi perfil", icon: UserCircle },
   ];
+
+  const links = isAdmin ? adminLinks : empLinks;
 
   const NavItems = () => (
     <>
       <div className="px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Empleado
+        {isAdmin ? (
+          <span className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5" /> Administración</span>
+        ) : (
+          "Menú"
+        )}
       </div>
-      {empLinks.map((l) => {
+      {links.map((l) => {
         const Icon = l.icon;
-        const active = pathname === l.to;
+        const active = pathname === l.to || (l.to !== "/admin" && l.to !== "/perfil" && pathname.startsWith(l.to));
         return (
           <Link
             key={l.to}
             to={l.to}
             onClick={() => setOpen(false)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active
                 ? "bg-primary/15 text-primary"
                 : "text-foreground/80 hover:bg-accent/40 hover:text-foreground",
             )}
           >
-            <Icon className="h-4 w-4" />
-            {l.label}
+            <span className="flex items-center gap-3">
+              <Icon className="h-4 w-4" />
+              {l.label}
+            </span>
+            {l.to === "/admin/solicitudes" && pending > 0 && (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                {pending}
+              </span>
+            )}
           </Link>
         );
       })}
-      {isAdmin && (
-        <>
-          <div className="mt-4 flex items-center gap-2 px-3 pb-2 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" /> Administración
-          </div>
-          {adminLinks.map((l) => {
-            const Icon = l.icon;
-            const active = pathname === l.to || (l.to !== "/admin" && pathname.startsWith(l.to));
-            return (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary/15 text-primary"
-                    : "text-foreground/80 hover:bg-accent/40 hover:text-foreground",
-                )}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
-                  {l.label}
-                </span>
-                {l.to === "/admin/solicitudes" && pending > 0 && (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                    {pending}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </>
-      )}
     </>
+  );
+
+  const ProfileMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-2 pl-2 pr-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <UserCircle className="h-4 w-4" />
+          </div>
+          <span className="hidden max-w-[140px] truncate text-sm sm:inline">
+            {displayName || user?.email}
+          </span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel>
+          <div className="font-semibold">{displayName || "Mi cuenta"}</div>
+          <div className="truncate text-xs font-normal text-muted-foreground">{user?.email}</div>
+          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <ShieldCheck className="h-3 w-3" />
+            {isAdmin ? "Administrador" : "Empleado"}
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
+          <UserCircle className="mr-2 h-4 w-4" /> Mi perfil
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={toggle}>
+          {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+          Tema {theme === "dark" ? "claro" : "oscuro"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+          <LogOut className="mr-2 h-4 w-4" /> Cerrar sesión
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
@@ -143,20 +183,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
           <NavItems />
         </nav>
-        <div className="border-t border-border p-3">
-          <div className="mb-2 truncate rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            {user?.email}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={toggle}>
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
       </aside>
+
+      {/* Desktop header */}
+      <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-border bg-background/80 px-6 backdrop-blur lg:flex lg:pl-[17rem]">
+        {isAdmin && pending > 0 && (
+          <div className="relative mr-3">
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+              {pending}
+            </span>
+          </div>
+        )}
+        <ProfileMenu />
+      </header>
 
       {/* Mobile header */}
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur lg:hidden">
@@ -175,9 +215,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </div>
           )}
-          <Button variant="ghost" size="icon" onClick={toggle}>
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
+          <ProfileMenu />
           <Button variant="ghost" size="icon" onClick={() => setOpen((o) => !o)}>
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -190,14 +228,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav className="space-y-0.5">
             <NavItems />
           </nav>
-          <div className="mt-3 border-t border-border pt-3">
-            <div className="mb-2 truncate rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              {user?.email}
-            </div>
-            <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Cerrar sesión
-            </Button>
-          </div>
         </div>
       )}
 

@@ -31,7 +31,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/nueva-solicitud", replace: true });
+      if (data.user) navigate({ to: "/", replace: true });
     });
   }, [navigate]);
 
@@ -46,7 +46,7 @@ function AuthPage() {
       return;
     }
     if (res.redirected) return;
-    navigate({ to: "/nueva-solicitud", replace: true });
+    navigate({ to: "/", replace: true });
   };
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -64,7 +64,7 @@ function AuthPage() {
         });
         if (error) throw error;
       }
-      navigate({ to: "/nueva-solicitud", replace: true });
+      navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error de autenticación");
     } finally {
