@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /admin
+Disallow: /nueva-solicitud
+Disallow: /mis-solicitudes
+Disallow: /completar-perfil
