@@ -9,38 +9,184 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedNuevaSolicitudRouteImport } from './routes/_authenticated/nueva-solicitud'
+import { Route as AuthenticatedMisSolicitudesRouteImport } from './routes/_authenticated/mis-solicitudes'
+import { Route as AuthenticatedCompletarPerfilRouteImport } from './routes/_authenticated/completar-perfil'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin/solicitudes'
+import { Route as AuthenticatedAdminEstadisticasRouteImport } from './routes/_authenticated/admin/estadisticas'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedNuevaSolicitudRoute =
+  AuthenticatedNuevaSolicitudRouteImport.update({
+    id: '/nueva-solicitud',
+    path: '/nueva-solicitud',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMisSolicitudesRoute =
+  AuthenticatedMisSolicitudesRouteImport.update({
+    id: '/mis-solicitudes',
+    path: '/mis-solicitudes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompletarPerfilRoute =
+  AuthenticatedCompletarPerfilRouteImport.update({
+    id: '/completar-perfil',
+    path: '/completar-perfil',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminSolicitudesRoute =
+  AuthenticatedAdminSolicitudesRouteImport.update({
+    id: '/solicitudes',
+    path: '/solicitudes',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminEstadisticasRoute =
+  AuthenticatedAdminEstadisticasRouteImport.update({
+    id: '/estadisticas',
+    path: '/estadisticas',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
+  '/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
+  '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
+  '/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
+  '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/_authenticated/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
+  '/_authenticated/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
+  '/_authenticated/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/_authenticated/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/_authenticated/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/admin'
+    | '/completar-perfil'
+    | '/mis-solicitudes'
+    | '/nueva-solicitud'
+    | '/admin/estadisticas'
+    | '/admin/solicitudes'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/completar-perfil'
+    | '/mis-solicitudes'
+    | '/nueva-solicitud'
+    | '/admin/estadisticas'
+    | '/admin/solicitudes'
+    | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/_authenticated/admin'
+    | '/_authenticated/completar-perfil'
+    | '/_authenticated/mis-solicitudes'
+    | '/_authenticated/nueva-solicitud'
+    | '/_authenticated/admin/estadisticas'
+    | '/_authenticated/admin/solicitudes'
+    | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +194,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/nueva-solicitud': {
+      id: '/_authenticated/nueva-solicitud'
+      path: '/nueva-solicitud'
+      fullPath: '/nueva-solicitud'
+      preLoaderRoute: typeof AuthenticatedNuevaSolicitudRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mis-solicitudes': {
+      id: '/_authenticated/mis-solicitudes'
+      path: '/mis-solicitudes'
+      fullPath: '/mis-solicitudes'
+      preLoaderRoute: typeof AuthenticatedMisSolicitudesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/completar-perfil': {
+      id: '/_authenticated/completar-perfil'
+      path: '/completar-perfil'
+      fullPath: '/completar-perfil'
+      preLoaderRoute: typeof AuthenticatedCompletarPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/solicitudes': {
+      id: '/_authenticated/admin/solicitudes'
+      path: '/solicitudes'
+      fullPath: '/admin/solicitudes'
+      preLoaderRoute: typeof AuthenticatedAdminSolicitudesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/estadisticas': {
+      id: '/_authenticated/admin/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/admin/estadisticas'
+      preLoaderRoute: typeof AuthenticatedAdminEstadisticasRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminEstadisticasRoute: typeof AuthenticatedAdminEstadisticasRoute
+  AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminEstadisticasRoute: AuthenticatedAdminEstadisticasRoute,
+    AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedCompletarPerfilRoute: typeof AuthenticatedCompletarPerfilRoute
+  AuthenticatedMisSolicitudesRoute: typeof AuthenticatedMisSolicitudesRoute
+  AuthenticatedNuevaSolicitudRoute: typeof AuthenticatedNuevaSolicitudRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedCompletarPerfilRoute: AuthenticatedCompletarPerfilRoute,
+  AuthenticatedMisSolicitudesRoute: AuthenticatedMisSolicitudesRoute,
+  AuthenticatedNuevaSolicitudRoute: AuthenticatedNuevaSolicitudRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
