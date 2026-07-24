@@ -16,6 +16,9 @@ import { Route as AuthenticatedNuevaSolicitudRouteImport } from './routes/_authe
 import { Route as AuthenticatedMisSolicitudesRouteImport } from './routes/_authenticated/mis-solicitudes'
 import { Route as AuthenticatedCompletarPerfilRouteImport } from './routes/_authenticated/completar-perfil'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin/solicitudes'
+import { Route as AuthenticatedAdminEstadisticasRouteImport } from './routes/_authenticated/admin/estadisticas'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -54,32 +57,57 @@ const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminSolicitudesRoute =
+  AuthenticatedAdminSolicitudesRouteImport.update({
+    id: '/solicitudes',
+    path: '/solicitudes',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminEstadisticasRoute =
+  AuthenticatedAdminEstadisticasRouteImport.update({
+    id: '/estadisticas',
+    path: '/estadisticas',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AuthenticatedAdminRouteRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
   '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AuthenticatedAdminRouteRoute
   '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
   '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRouteRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
   '/_authenticated/mis-solicitudes': typeof AuthenticatedMisSolicitudesRoute
   '/_authenticated/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
+  '/_authenticated/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/_authenticated/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,14 +118,19 @@ export interface FileRouteTypes {
     | '/completar-perfil'
     | '/mis-solicitudes'
     | '/nueva-solicitud'
+    | '/admin/estadisticas'
+    | '/admin/solicitudes'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/admin'
     | '/completar-perfil'
     | '/mis-solicitudes'
     | '/nueva-solicitud'
+    | '/admin/estadisticas'
+    | '/admin/solicitudes'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -107,6 +140,9 @@ export interface FileRouteTypes {
     | '/_authenticated/completar-perfil'
     | '/_authenticated/mis-solicitudes'
     | '/_authenticated/nueva-solicitud'
+    | '/_authenticated/admin/estadisticas'
+    | '/_authenticated/admin/solicitudes'
+    | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -166,18 +202,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/solicitudes': {
+      id: '/_authenticated/admin/solicitudes'
+      path: '/solicitudes'
+      fullPath: '/admin/solicitudes'
+      preLoaderRoute: typeof AuthenticatedAdminSolicitudesRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/estadisticas': {
+      id: '/_authenticated/admin/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/admin/estadisticas'
+      preLoaderRoute: typeof AuthenticatedAdminEstadisticasRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminEstadisticasRoute: typeof AuthenticatedAdminEstadisticasRoute
+  AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminEstadisticasRoute: AuthenticatedAdminEstadisticasRoute,
+    AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRoute
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedCompletarPerfilRoute: typeof AuthenticatedCompletarPerfilRoute
   AuthenticatedMisSolicitudesRoute: typeof AuthenticatedMisSolicitudesRoute
   AuthenticatedNuevaSolicitudRoute: typeof AuthenticatedNuevaSolicitudRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRoute,
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedCompletarPerfilRoute: AuthenticatedCompletarPerfilRoute,
   AuthenticatedMisSolicitudesRoute: AuthenticatedMisSolicitudesRoute,
   AuthenticatedNuevaSolicitudRoute: AuthenticatedNuevaSolicitudRoute,
