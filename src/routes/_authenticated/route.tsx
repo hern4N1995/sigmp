@@ -3,16 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
-    // Ensure profile completeness (except on the profile route itself)
     const { data: profile } = await supabase
       .from("profiles")
       .select("perfil_completo")
       .eq("id", data.user.id)
       .maybeSingle();
-    return { user: data.user, profileComplete: profile?.perfil_completo ?? false };
+    const complete = profile?.perfil_completo ?? false;
+    if (!complete && location.pathname !== "/completar-perfil") {
+      throw redirect({ to: "/completar-perfil" });
+    }
+    return { user: data.user };
   },
   component: () => <Outlet />,
 });
