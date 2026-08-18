@@ -1,15 +1,41 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
-//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
-//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { nitro } from "nitro/vite";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+  plugins: [
+    // TanStack Start must come before React, and it handles the Start/SSR wiring.
+    tanstackStart(),
+    // React plugin
+    viteReact(),
+    // Tailwind CSS
+    tailwindcss(),
+    // Nitro remains for the runtime server build in this setup.
+    nitro({
+      presets: ["vercel"],
+    }),
+  ],
+  resolve: {
+    alias: {
+      // @ alias for src directory
+      "@": path.resolve(__dirname, "./src"),
+    },
+    // Use Vite's native tsconfig paths resolution (replaces vite-tsconfig-paths plugin)
+    tsconfigPaths: true,
+  },
+  define: {
+    // Inject VITE_* environment variables
+    ...(Object.keys(process.env).reduce((acc, key) => {
+      if (key.startsWith("VITE_")) {
+        acc[`process.env.${key}`] = JSON.stringify(process.env[key]);
+      }
+      return acc;
+    }, {} as Record<string, string>)),
   },
 });

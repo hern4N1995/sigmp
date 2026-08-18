@@ -1,502 +1,282 @@
-# Production Support Hub
-
-Perfecto. Antes del PRD, dejo un breve resumen de lo que se va a construir y los únicos puntos que quedaron implícitos.
-
-Resumen
-
-Se desarrollará un sitio web interno para el Ministerio de Producción que permitirá a los empleados registrar solicitudes de soporte técnico al Área de Sistemas.
-
-Existirán dos roles:
-
-Empleado: inicia sesión, registra una solicitud y puede ver el estado de la misma.
-
-Administrador (Área de Sistemas): recibe las solicitudes, las administra, cambia su estado a finalizado y visualiza estadísticas del servicio.
-
-El sitio tendrá un diseño moderno, minimalista, completamente responsive, con modo oscuro por defecto, modo claro opcional y una paleta de colores basada en tonos verdes.
-
-Puntos asumidos (para evitar dejar huecos)
-
-Como no se especificaron durante la conversación, se dejan como requisitos abiertos para que Lovable los implemente de la forma más conveniente:
-
-Los administradores podrán crear usuarios manualmente (correo + contraseña).
-
-Los usuarios autenticados mediante Google podrán acceder automáticamente.
-
-Las estadísticas serán por día y estado de los pedidos.
-
-No se incluye envío de correos electrónicos (solo notificaciones dentro del sistema).
-
-No se incluye panel de superadministrador ni gestión avanzada de permisos.
-
-PRD PARA LOVABLE
-
-1. Rol del Asistente (Meta Prompting)
-
-Eres un diseñador/desarrollador experto en UI/UX y Mobile-First, centrado en la estética, conversión y experiencia visual.
-
-Debes construir un sitio web moderno utilizando las mejores prácticas de React, Vite y Tailwind CSS, priorizando una excelente experiencia de usuario, interfaces limpias y un código organizado y escalable.
-
-2. Descripción General y Visión
-
-Desarrollar un sistema web interno para el Ministerio de Producción destinado a la gestión de solicitudes de soporte técnico realizadas por los empleados hacia el Área de Sistemas.
-
-El objetivo del sistema es centralizar todos los pedidos técnicos para mejorar el seguimiento, reducir tiempos de respuesta y disponer de estadísticas del trabajo realizado.
-
-Usuarios
-
-Empleado
-
-Podrá:
-
-Iniciar sesión.
-
-Completar sus datos.
-
-Crear solicitudes de soporte.
-
-Ver el estado de sus solicitudes.
-
-Administrador (Área de Sistemas)
-
-Podrá:
-
-Iniciar sesión.
-
-Visualizar todas las solicitudes.
-
-Gestionarlas.
-
-Cambiar su estado.
-
-Marcar solicitudes como finalizadas.
-
-Consultar estadísticas.
-
-Objetivo principal
-
-Que cualquier empleado pueda registrar una incidencia informática de forma sencilla y que el Área de Sistemas pueda administrarlas desde un único panel.
-
-3. Stack y Restricciones Técnicas
-
-Frontend
-
-React
-
-Vite
-
-Tailwind CSS
-
-Diseño Mobile First
-
-Componentes modernos
-
-Diseño totalmente Responsive
-
-Backend
-
-Supabase
-
-Utilizar:
-
-Base de datos PostgreSQL
-
-Authentication
-
-Base de datos relacional
-
-Métodos de autenticación
-
-Login con Google
-
-Login mediante correo y contraseña
-
-Los administradores podrán crear usuarios internos con correo y contraseña.
-
-No se requiere autenticación adicional.
-
-4. Flujo de Usuario y Estructura de Navegación
-
-Página 1 — Login
-
-Pantalla inicial.
-
-Debe permitir:
-
-Iniciar sesión con Google.
-
-Iniciar sesión mediante correo y contraseña.
-
-Interfaz limpia y moderna.
-
-Página 2 — Perfil del usuario
-
-La primera vez que ingrese deberá completar:
-
-Nombre
-
-Apellido
-
-DNI
-
-Área o dependencia
-
-Una vez guardados los datos accederá al sistema.
-
-Página 3 — Nueva Solicitud
-
-Formulario para crear un pedido.
-
-Campos:
-
-Nombre (autocompletado)
-
-Apellido (autocompletado)
-
-Área (autocompletado)
-
-Motivo del pedido
-
-Descripción del problema
-
-Nivel de urgencia
-
-Selector:
-
-Urgente
-
-Normal
-
-Botón:
-
-Enviar solicitud
-
-Al finalizar deberá mostrarse un mensaje indicando:
-
-"Su solicitud fue enviada correctamente."
-
-La solicitud quedará con estado:
-
-En espera
-
-Página 4 — Mis Solicitudes
-
-El empleado podrá visualizar todas sus solicitudes.
-
-Cada tarjeta mostrará:
-
-Fecha
-
-Estado
-
-Nivel de urgencia
-
-Motivo
-
-Estados posibles:
-
-En espera
-
-En proceso
-
-Finalizado
-
-Panel Administrador
-
-Visible únicamente para usuarios con rol Administrador.
-
-Debe contener:
-
-Dashboard
-
-Indicadores:
-
-Cantidad de pedidos del día
-
-Pedidos pendientes
-
-Pedidos finalizados
-
-Tiempo promedio de resolución
-
-Total histórico de solicitudes
-
-Tabla de solicitudes
-
-Listado completo con filtros.
-
-Columnas:
-
-Fecha
-
-Empleado
-
-Área
-
-Motivo
-
-Urgencia
-
-Estado
-
-Acciones:
-
-Ver detalle
-
-Cambiar estado
-
-Marcar como finalizado
-
-Estadísticas
-
-Mostrar gráficos con información como:
-
-Solicitudes por día
-
-Solicitudes por área
-
-Cantidad de urgentes
-
-Cantidad de normales
-
-Solicitudes resueltas
-
-Solicitudes pendientes
-
-Tiempo promedio de resolución
-
-Notificaciones
-
-Cuando un empleado cree una nueva solicitud:
-
-El administrador deberá visualizar una notificación dentro del sistema indicando que existe un nuevo pedido pendiente.
-
-5. Funcionalidades Clave
-
-Empleados
-
-Login con Google
-
-Login con correo y contraseña
-
-Completar perfil
-
-Crear solicitudes
-
-Ver historial
-
-Consultar estado de cada solicitud
-
-Administradores
-
-Login
-
-Panel administrativo
-
-Gestión completa de solicitudes
-
-Cambio de estados
-
-Finalizar solicitudes
-
-Visualización de estadísticas
-
-Recepción de notificaciones internas
-
-Creación de usuarios internos
-
-6. Lineamientos de Diseño UI/UX
-
-El diseño debe ser moderno, profesional y minimalista.
-
-Estilo
-
-Inspirado en dashboards modernos.
-
-Debe transmitir simplicidad y orden.
-
-Paleta
-
-Color principal:
-
-Verde
-
-Colores secundarios:
-
-Grises oscuros
-
-Fondos:
-
-Modo oscuro predominante.
-
-Debe existir opción para cambiar a modo claro.
-
-Diseño
-
-Mobile First
-
-Totalmente Responsive
-
-Excelente UX/UI
-
-Componentes modernos
-
-Tarjetas con sombras suaves
-
-Bordes redondeados
-
-Iconografía limpia
-
-Animaciones sutiles
-
-Navegación intuitiva
-
-Experiencia
-
-La creación de solicitudes debe poder realizarse en pocos pasos.
-
-Toda la información importante debe encontrarse visible sin complicaciones.
-
-El panel administrativo debe priorizar la rapidez para gestionar solicitudes.
-
-7. Alcance del Proyecto (Scope)
-
-Incluido
-
-Login con Google
-
-Login mediante correo y contraseña
-
-Creación de usuarios por administradores
-
-Gestión de perfiles
-
-Formulario de solicitudes
-
-Historial de solicitudes
-
-Panel administrativo
-
-Dashboard con estadísticas
-
-Cambio de estados
-
-Finalización de solicitudes
-
-Notificaciones internas
-
-Responsive Design
-
-Dark Mode
-
-Light Mode
-
-Excluido
-
-Aplicación móvil nativa
-
-Envío de correos electrónicos
-
-Integraciones con WhatsApp
-
-Chat interno
-
-Sistema de tickets con múltiples técnicos asignados
-
-Firma digital
-
-Gestión documental
-
-Integraciones con sistemas externos
-
-Requisitos adicionales para Lovable
-
-Roles
-
-Implementar únicamente dos roles:
-
-Empleado
-
-Administrador
-
-Aplicar control de acceso para que únicamente los administradores puedan acceder al Dashboard, estadísticas y gestión de solicitudes.
-
-Base de datos (Supabase)
-
-Se recomienda una estructura con las siguientes tablas:
-
-profiles
-
-id
-
-nombre
-
-apellido
-
-dni
-
-area
-
-rol
-
-email
-
-solicitudes
-
-id
-
-usuario_id
-
-motivo
-
-descripcion
-
-urgencia
-
-estado
-
-fecha_creacion
-
-fecha_finalizacion
-
-Estados permitidos
-
-En espera
-
-En proceso
-
-Finalizado
-
-Seguridad
-
-Configurar Row Level Security (RLS):
-
-Los empleados solo podrán visualizar y gestionar sus propias solicitudes.
-
-Los administradores podrán visualizar y administrar todas las solicitudes.
-
-Solo los administradores podrán crear usuarios internos y cambiar el estado de las solicitudes.
-
-Este PRD está listo para copiar y pegar en Lovable como superprompt. Proporciona una especificación suficientemente detallada para generar una primera versión funcional del sistema de mesa de ayuda interna del Ministerio de Producción.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://green-desk-helper.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/fe6cb6bd-244a-4cbc-8618-c51d90a5f619).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+# Portal de Soporte Técnico — Ministerio de Producción de Corrientes
+
+Sistema web interno para la gestión centralizada de solicitudes de soporte técnico del Ministerio de Producción de Corrientes.
+
+## 📋 Descripción General
+
+Este portal permite a los empleados del Ministerio de Producción registrar solicitudes de soporte técnico y al Área de Sistemas administrarlas, mejorar el seguimiento y reducir tiempos de respuesta mediante un único panel de control integrado.
+
+### Objetivo Principal
+
+Centralizar todos los pedidos técnicos de los empleados para:
+- Mejorar el seguimiento de incidencias
+- Reducir tiempos de respuesta
+- Disponer de estadísticas del servicio
+- Optimizar la gestión de recursos del Área de Sistemas
+
+## 👥 Roles del Sistema
+
+### Empleado
+- Iniciar sesión con Google o correo/contraseña
+- Completar perfil (nombre, apellido, DNI, área)
+- Crear solicitudes de soporte técnico
+- Ver estado y historial de sus solicitudes
+- Recibir notificaciones internas de cambios
+
+### Administrador (Área de Sistemas)
+- Acceso al panel administrativo
+- Ver todas las solicitudes
+- Gestionar y cambiar estados
+- Marcar solicitudes como finalizadas
+- Visualizar estadísticas y reportes
+- Crear usuarios internos (correo + contraseña)
+
+## 🛠️ Stack Técnico
+
+### Frontend
+- **React 19** — UI library
+- **Vite 8** — Build tool y dev server
+- **Tailwind CSS 4** — Styling
+- **TanStack Router** — Client-side routing
+- **TanStack React Query** — Data fetching & caching
+- **Shadcn/ui** — Componentes UI modernos
+- **React Hook Form + Zod** — Form management y validación
+
+### Backend / SSR
+- **Nitro** — SSR server (Node.js preset)
+- **Supabase** — PostgreSQL database + Authentication
+
+### Infraestructura
+- **TypeScript** — Type safety
+- **ESLint + Prettier** — Code quality
+
+## ✨ Características
+
+### Para Empleados
+- ✅ Autenticación con Google
+- ✅ Autenticación con correo/contraseña
+- ✅ Completar y actualizar perfil
+- ✅ Crear solicitudes de soporte
+- ✅ Historial de solicitudes personales
+- ✅ Seguimiento de estado en tiempo real
+- ✅ Notificaciones internas
+
+### Para Administradores
+- ✅ Dashboard con KPIs
+- ✅ Tabla de solicitudes con filtros y búsqueda
+- ✅ Gestión de estados (En espera → En proceso → Finalizado)
+- ✅ Estadísticas por período
+- ✅ Gráficos de solicitudes
+- ✅ Tiempo promedio de resolución
+- ✅ Gestión de usuarios internos
+
+### Diseño
+- ✅ Mobile First y Responsive
+- ✅ Modo oscuro (por defecto)
+- ✅ Modo claro (opcional)
+- ✅ Interfaz minimalista y moderna
+- ✅ Paleta de colores con tonos verdes
+
+## 🚀 Instalación y Setup
+
+### Requisitos Previos
+- Node.js 18+ (se recomienda 20+)
+- npm o bun
+
+### Clonar el Repositorio
+```bash
+git clone <repository-url>
+cd sigmp
 ```
+
+### Instalar Dependencias
+```bash
+npm install
+# o si usas bun:
+bun install
+```
+
+### Configurar Variables de Entorno
+1. Copiar `.env.example` a `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Llenar las credenciales de Supabase en `.env`:
+```env
+SUPABASE_PROJECT_ID="your_project_id"
+SUPABASE_PUBLISHABLE_KEY="your_publishable_key"
+SUPABASE_URL="https://your-project-id.supabase.co"
+VITE_SUPABASE_PROJECT_ID="your_project_id"
+VITE_SUPABASE_PUBLISHABLE_KEY="your_publishable_key"
+VITE_SUPABASE_URL="https://your-project-id.supabase.co"
+```
+
+> ⚠️ **Importante**: Nunca comitear el archivo `.env` con credenciales reales. Se encuentra en `.gitignore`.
+
+### Configurar Supabase
+
+1. Crear un proyecto en [supabase.com](https://supabase.com)
+2. Copiar las credenciales al archivo `.env`
+3. Ejecutar las migraciones (ver sección "Base de Datos" abajo)
+
+### Base de Datos
+
+Las migraciones SQL están en `supabase/migrations/`. Se aplicarán automáticamente con `supabase cli` o directamente en el dashboard de Supabase.
+
+#### Migraciones Disponibles
+- `20260724142359_*.sql` — Crear tablas iniciales
+- `20260724142418_*.sql` — Agregar campos adicionales
+- Etc.
+
+Para aplicarlas manualmente:
+```bash
+# Con Supabase CLI
+supabase db push
+
+# O copiar y ejecutar directamente en el SQL editor de Supabase
+```
+
+## 📦 Scripts Disponibles
+
+```bash
+# Desarrollo local
+npm run dev
+
+# Build para producción
+npm run build
+
+# Preview del build (SSR)
+npm run preview
+
+# Linting
+npm run lint
+
+# Formato de código
+npm run format
+```
+
+### `npm run dev`
+Inicia el servidor de desarrollo Vite con hot reload.
+
+**URL**: [http://localhost:5173](http://localhost:5173)
+
+### `npm run build`
+Compila la aplicación para producción. Genera:
+- Cliente compilado en `dist/`
+- Servidor SSR (Nitro) en `.output/`
+
+### `npm run preview`
+Ejecuta el build previamente compilado en modo SSR.
+
+## 🗂️ Estructura del Proyecto
+
+```
+sigmp/
+├── src/
+│   ├── components/          # Componentes React (UI + lógica)
+│   │   ├── ui/             # Componentes base de Shadcn/ui
+│   │   ├── app-shell.tsx   # Layout principal
+│   │   └── ...
+│   ├── routes/             # Rutas (TanStack Router)
+│   │   ├── __root.tsx      # Root layout
+│   │   ├── auth.tsx        # Página de login
+│   │   ├── index.tsx       # Home/Dashboard
+│   │   └── _authenticated/ # Rutas protegidas
+│   ├── hooks/              # Custom React hooks
+│   ├── integrations/       # Integraciones (Supabase)
+│   │   └── supabase/
+│   ├── lib/                # Utilidades y helpers
+│   ├── styles.css          # Estilos globales
+│   ├── router.tsx          # Configuración de rutas
+│   ├── server.ts           # Entry point del servidor SSR
+│   └── start.ts            # Entry point del cliente
+├── supabase/
+│   ├── config.toml         # Configuración de Supabase
+│   └── migrations/         # Migraciones SQL
+├── vite.config.ts          # Configuración de Vite
+├── tsconfig.json           # TypeScript config
+├── tailwind.config.js      # Tailwind CSS config
+├── eslint.config.js        # ESLint rules
+└── package.json
+```
+
+## 🔐 Autenticación
+
+### Google OAuth
+1. Configurar Google Cloud Console
+2. Agregar Redirect URIs en Google Cloud y Supabase:
+   - Desarrollo: `http://localhost:5173/auth/callback`
+   - Producción: `https://tu-dominio.com/auth/callback`
+
+### Correo y Contraseña
+- Los usuarios pueden registrarse directamente en Supabase
+- Los administradores pueden crear usuarios internos con credenciales
+
+## 🚢 Despliegue
+
+El proyecto está configurado para desplegar en:
+
+### Vercel
+El preset de Nitro está configurado para Node.js. Para desplegar en Vercel:
+```bash
+npm run build
+vercel deploy
+```
+
+### Self-hosted (VPS/Servidor propio)
+```bash
+npm run build
+# Copiar .output/ al servidor
+cd .output
+node server/index.mjs
+```
+
+### Otros Proveedores
+Para cambiar el preset de Nitro:
+- **Vercel**: `preset: "vercel"`
+- **Node.js**: `preset: "node-server"` (actual)
+- **Cloudflare**: `preset: "cloudflare"`
+
+Actualizar en `vite.config.ts`.
+
+## 📝 Variables de Entorno
+
+Ver `.env.example` para la lista completa. Las variables críticas son:
+
+```
+SUPABASE_URL              # URL del proyecto Supabase
+SUPABASE_PUBLISHABLE_KEY  # Clave pública de Supabase
+VITE_SUPABASE_URL         # URL de Supabase (cliente)
+VITE_SUPABASE_PUBLISHABLE_KEY  # Clave pública (cliente)
+```
+
+## 🐛 Desarrollo
+
+### Hot Reload
+Vite + TanStack Router soportan hot reload automático durante el desarrollo.
+
+### TypeScript
+El proyecto está completamente tipado. Ejecutar verificación:
+```bash
+npx tsc --noEmit
+```
+
+### Testing
+Actualmente no hay tests configurados, pero está listo para integrar:
+- Vitest (unit tests)
+- Playwright (e2e tests)
+
+## 📄 Licencia
+
+Interno — Ministerio de Producción de Corrientes
+
+## 👤 Contacto
+
+Para consultas técnicas o feedback, contactar al Área de Sistemas.
+
+---
+
+**Última actualización**: Agosto 2026
+
+**Estado**: En desarrollo (migración desde Lovable completada)
