@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, PlusCircle, ClipboardList, LogOut, ShieldCheck, BarChart3, Sun, Moon, Menu, X, Bell, Users, UserCircle } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,52 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(0);
   const [displayName, setDisplayName] = useState<string>("");
+  const previousPending = useRef<number | null>(null);
+  const notificationActive = useRef(false);
+  const repeatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioContext = useRef<AudioContext | null>(null);
+
+  const playNotificationSound = () => {
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = audioContext.current ?? new AudioContextClass();
+    audioContext.current = context;
+    if (context.state === "suspended") void context.resume();
+
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.setValueAtTime(660, now + 0.12);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.3);
+  };
+
+  const stopNotificationSound = () => {
+    notificationActive.current = false;
+    if (repeatTimer.current) clearTimeout(repeatTimer.current);
+    repeatTimer.current = null;
+  };
+
+  const startNotificationSound = () => {
+    if (notificationActive.current) return;
+    notificationActive.current = true;
+    playNotificationSound();
+    const repeat = () => {
+      if (!notificationActive.current) return;
+      playNotificationSound();
+      repeatTimer.current = setTimeout(repeat, 10 * 60 * 1000);
+    };
+    repeatTimer.current = setTimeout(repeat, 10 * 60 * 1000);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -59,7 +105,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         .from("solicitudes")
         .select("id", { count: "exact", head: true })
         .eq("estado", "en_espera");
-      setPending(count ?? 0);
+      const nextPending = count ?? 0;
+      if (previousPending.current !== null && nextPending > previousPending.current) {
+        startNotificationSound();
+      }
+      previousPending.current = nextPending;
+      setPending(nextPending);
     };
     load();
     const channel = supabase
@@ -68,8 +119,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
+      stopNotificationSound();
+      if (audioContext.current) void audioContext.current.close();
     };
   }, [isAdmin]);
+
+  const reviewNotifications = () => {
+    stopNotificationSound();
+    navigate({ to: "/admin/solicitudes" });
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -188,12 +246,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Desktop header */}
       <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-border bg-background/80 px-6 backdrop-blur lg:flex lg:pl-[17rem]">
         {isAdmin && pending > 0 && (
-          <div className="relative mr-3">
+          <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="relative mr-3 rounded-md p-1 hover:bg-accent">
             <Bell className="h-4 w-4 text-muted-foreground" />
             <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
               {pending}
             </span>
-          </div>
+          </button>
         )}
         <ProfileMenu />
       </header>
@@ -208,12 +266,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <div className="flex items-center gap-1">
           {isAdmin && pending > 0 && (
-            <div className="relative mr-1">
+            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="relative mr-1 rounded-md p-1 hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                 {pending}
               </span>
-            </div>
+            </button>
           )}
           <ProfileMenu />
           <Button variant="ghost" size="icon" onClick={() => setOpen((o) => !o)}>

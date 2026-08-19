@@ -75,7 +75,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Soporte Sistemas — Ministerio de Producción" },
+      { title: "Portal de Soporte - Ministerio de Producción" },
       { name: "description", content: "Sistema interno de gestión de solicitudes de soporte técnico del Ministerio de Producción." },
       { name: "author", content: "Ministerio de Producción" },
       { property: "og:title", content: "Soporte Sistemas — Ministerio de Producción" },
@@ -89,6 +89,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
     ],
   }),
   shellComponent: RootShell,

@@ -4,6 +4,11 @@ Registro cronológico del progreso de la migración fuera de Lovable.
 
 ## Hecho
 
+### 2026-08-19 — Catálogo de áreas y selección por combobox
+- Se creó la migración `20260819000000_create_areas.sql` con el catálogo oficial de áreas, RLS de lectura para usuarios autenticados y la relación `profiles.area_id`.
+- El formulario de completar perfil ahora carga las áreas desde Supabase, permite buscarlas sin distinguir mayúsculas ni acentos y guarda el UUID seleccionado.
+- La vista de perfil muestra `nombre_corto`, manteniendo el campo `area` por compatibilidad hacia atrás.
+
 ### 2026-08-12 — Confirmado: build standalone OK
 - Se ejecutó `npm install` y `npm run build` en un entorno limpio fuera de Lovable.
 - El build terminó correctamente con exit code 0.

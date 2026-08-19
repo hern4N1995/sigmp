@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          area_id: string | null
           apellido: string | null
           area: string | null
           created_at: string
@@ -27,6 +28,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          area_id?: string | null
           apellido?: string | null
           area?: string | null
           created_at?: string
@@ -38,6 +40,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          area_id?: string | null
           apellido?: string | null
           area?: string | null
           created_at?: string
@@ -47,6 +50,35 @@ export type Database = {
           nombre?: string | null
           perfil_completo?: boolean
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      areas: {
+        Row: {
+          id: string
+          nombre_completo: string
+          nombre_corto: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nombre_completo: string
+          nombre_corto: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nombre_completo?: string
+          nombre_corto?: string
+          created_at?: string
         }
         Relationships: []
       }

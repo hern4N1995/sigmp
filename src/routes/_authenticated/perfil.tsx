@@ -24,6 +24,8 @@ type Profile = {
   email: string | null;
   dni: string | null;
   area: string | null;
+  area_id: string | null;
+  areas: { nombre_corto: string } | null;
 };
 
 function MiPerfil() {
@@ -34,7 +36,7 @@ function MiPerfil() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("nombre, apellido, email, dni, area")
+      .select("nombre, apellido, email, dni, area, area_id, areas(nombre_corto)")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data as Profile | null));
@@ -88,7 +90,7 @@ function MiPerfil() {
             </div>
             <div className="space-y-1.5">
               <Label>Área</Label>
-              <Input value={profile?.area ?? ""} disabled />
+              <Input value={profile?.areas?.nombre_corto ?? profile?.area ?? ""} disabled />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Rol</Label>

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Loader2, UserCircle } from "lucide-react";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Loader2, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/completar-perfil")({
@@ -24,25 +26,38 @@ const schema = z.object({
   nombre: z.string().trim().min(2, "Nombre requerido").max(60),
   apellido: z.string().trim().min(2, "Apellido requerido").max(60),
   dni: z.string().trim().regex(/^\d{6,10}$/, "DNI inválido"),
-  area: z.string().trim().min(2, "Área requerida").max(80),
+  areaId: z.string().uuid("Área requerida"),
 });
+
+type Area = { id: string; nombre_completo: string; nombre_corto: string };
+
+function normalize(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
 
 function Perfil() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", area: "" });
+  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", areaId: "" });
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [areaOpen, setAreaOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initial, setInitial] = useState(true);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-      const { data: p } = await supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+      const [{ data: p }, { data: areaOptions, error: areasError }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle(),
+        supabase.from("areas").select("id, nombre_completo, nombre_corto").order("nombre_corto"),
+      ]);
+      if (areasError) toast.error(areasError.message);
+      setAreas(areaOptions ?? []);
       if (p) {
         setForm({
           nombre: p.nombre ?? "",
           apellido: p.apellido ?? "",
           dni: p.dni ?? "",
-          area: p.area ?? "",
+          areaId: p.area_id ?? areaOptions?.find((area) => area.nombre_completo === p.area || area.nombre_corto === p.area)?.id ?? "",
         });
       }
       setInitial(false);
@@ -61,7 +76,7 @@ function Perfil() {
     if (!u.user) return;
     const { error } = await supabase
       .from("profiles")
-      .update({ ...parsed.data, perfil_completo: true })
+      .update({ nombre: parsed.data.nombre, apellido: parsed.data.apellido, dni: parsed.data.dni, area_id: parsed.data.areaId, perfil_completo: true })
       .eq("id", u.user.id);
     setLoading(false);
     if (error) {
@@ -100,7 +115,34 @@ function Perfil() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="area">Área o dependencia</Label>
-              <Input id="area" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} disabled={initial} />
+              <Popover open={areaOpen} onOpenChange={setAreaOpen}>
+                <PopoverTrigger asChild>
+                  <Button id="area" type="button" variant="outline" role="combobox" aria-expanded={areaOpen} disabled={initial} className="w-full justify-between font-normal">
+                    {areas.find((area) => area.id === form.areaId)?.nombre_corto ?? "Seleccioná un área"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command filter={(value, search) => {
+                    const area = areas.find((option) => option.id === value);
+                    return area && normalize(`${area.nombre_corto} ${area.nombre_completo}`).includes(normalize(search)) ? 1 : 0;
+                  }}>
+                    <CommandInput placeholder="Buscar área..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontraron áreas.</CommandEmpty>
+                      {areas.map((area) => (
+                        <CommandItem key={area.id} value={area.id} onSelect={() => {
+                          setForm({ ...form, areaId: area.id });
+                          setAreaOpen(false);
+                        }}>
+                          <Check className={form.areaId === area.id ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"} />
+                          {area.nombre_corto}
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" className="w-full sm:w-auto" disabled={loading || initial}>
