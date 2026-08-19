@@ -31,6 +31,8 @@ type Row = {
   apellido: string | null;
   email: string | null;
   area: string | null;
+  area_id: string | null;
+  area_nombre_corto: string | null;
   created_at: string;
   role: Role;
 };
@@ -54,14 +56,17 @@ function UsuariosPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id, nombre, apellido, email, area, created_at").order("created_at", { ascending: false }),
+    const [{ data: profiles }, { data: roles }, { data: areas }] = await Promise.all([
+      supabase.from("profiles").select("id, nombre, apellido, email, area, area_id, created_at").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
+      supabase.from("areas").select("id, nombre_corto"),
     ]);
     const rolesMap = new Map<string, Role>();
     (roles ?? []).forEach((r: any) => rolesMap.set(r.user_id, r.role as Role));
+    const areasMap = new Map((areas ?? []).map((area) => [area.id, area.nombre_corto]));
     const merged: Row[] = (profiles ?? []).map((p: any) => ({
       ...p,
+      area_nombre_corto: areasMap.get(p.area_id) ?? null,
       role: rolesMap.get(p.id) ?? "empleado",
     }));
     setRows(merged);
@@ -149,7 +154,7 @@ function UsuariosPage() {
                     <td className="px-4 py-3">{r.nombre ?? "—"}</td>
                     <td className="px-4 py-3">{r.apellido ?? "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.email ?? "—"}</td>
-                    <td className="px-4 py-3">{r.area ?? "—"}</td>
+                    <td className="px-4 py-3">{r.area_nombre_corto ?? r.area ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span
                         className={
