@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { UserCircle, ShieldCheck, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
@@ -25,7 +26,7 @@ type Profile = {
   dni: string | null;
   area: string | null;
   area_id: string | null;
-  areas: { nombre_corto: string } | null;
+  area_nombre_corto: string | null;
 };
 
 function MiPerfil() {
@@ -34,12 +35,26 @@ function MiPerfil() {
 
   useEffect(() => {
     if (!user) return;
-    supabase
+    const loadProfile = async () => {
+      const { data, error } = await supabase
       .from("profiles")
-      .select("nombre, apellido, email, dni, area, area_id, areas(nombre_corto)")
+      .select("nombre, apellido, email, dni, area, area_id")
       .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data as Profile | null));
+      .maybeSingle();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (!data) {
+        setProfile(null);
+        return;
+      }
+      const { data: area } = data.area_id
+        ? await supabase.from("areas").select("nombre_corto").eq("id", data.area_id).maybeSingle()
+        : { data: null };
+      setProfile({ ...data, area_nombre_corto: area?.nombre_corto ?? null } as Profile);
+    };
+    loadProfile();
   }, [user]);
 
   return (
@@ -90,7 +105,7 @@ function MiPerfil() {
             </div>
             <div className="space-y-1.5">
               <Label>Área</Label>
-              <Input value={profile?.areas?.nombre_corto ?? profile?.area ?? ""} disabled />
+              <Input value={profile?.area_nombre_corto ?? profile?.area ?? ""} disabled />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Rol</Label>

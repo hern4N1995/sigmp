@@ -41,14 +41,17 @@ function NuevaSolicitud() {
       if (!data.user) return;
       const { data: p } = await supabase
         .from("profiles")
-        .select("nombre, apellido, area, perfil_completo")
+        .select("nombre, apellido, area, area_id, perfil_completo")
         .eq("id", data.user.id)
         .maybeSingle();
       if (p && !p.perfil_completo) {
         navigate({ to: "/completar-perfil", replace: true });
         return;
       }
-      setProfile(p as any);
+      const { data: area } = p?.area_id
+        ? await supabase.from("areas").select("nombre_corto").eq("id", p.area_id).maybeSingle()
+        : { data: null };
+      setProfile({ ...p, area: area?.nombre_corto ?? p?.area ?? "" } as any);
     });
   }, [navigate]);
 
