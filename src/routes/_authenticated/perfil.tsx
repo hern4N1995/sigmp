@@ -12,7 +12,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
-      { title: "Mi perfil — Soporte Sistemas" },
+      { title: "Mi perfil - Soporte Sistemas" },
       { name: "description", content: "Consulta los datos de tu cuenta en el portal de soporte." },
     ],
   }),

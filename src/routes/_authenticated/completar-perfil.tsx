@@ -15,7 +15,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/completar-perfil")({
   head: () => ({
     meta: [
-      { title: "Completar perfil — Soporte Sistemas" },
+      { title: "Completar perfil - Soporte Sistemas" },
       { name: "description", content: "Completá tus datos para acceder al sistema." },
     ],
   }),

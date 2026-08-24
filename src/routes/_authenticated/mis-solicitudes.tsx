@@ -20,7 +20,7 @@ type Sol = {
 export const Route = createFileRoute("/_authenticated/mis-solicitudes")({
   head: () => ({
     meta: [
-      { title: "Mis solicitudes — Soporte Sistemas" },
+      { title: "Mis solicitudes - Soporte Sistemas" },
       { name: "description", content: "Historial y estado de tus solicitudes." },
     ],
   }),

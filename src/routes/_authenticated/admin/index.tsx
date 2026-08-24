@@ -8,7 +8,7 @@ import { LayoutDashboard, Clock, CircleCheck, ClipboardList, Timer, TrendingUp }
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Administración" },
+      { title: "Dashboard - Administración" },
       { name: "description", content: "Panel administrativo del Área de Sistemas." },
     ],
   }),

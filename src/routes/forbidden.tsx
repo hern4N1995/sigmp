@@ -4,7 +4,7 @@ import { ShieldAlert } from "lucide-react";
 export const Route = createFileRoute("/forbidden")({
   head: () => ({
     meta: [
-      { title: "403 — Acceso denegado | Soporte Sistemas" },
+      { title: "403 - Acceso denegado | Soporte Sistemas" },
       { name: "description", content: "No tenés permisos para acceder a esta sección." },
     ],
   }),

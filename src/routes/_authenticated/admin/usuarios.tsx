@@ -40,7 +40,7 @@ type Row = {
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
   head: () => ({
     meta: [
-      { title: "Usuarios — Administración | Soporte Sistemas" },
+      { title: "Usuarios - Administración | Soporte Sistemas" },
       { name: "description", content: "Administración de usuarios del portal de soporte." },
     ],
   }),

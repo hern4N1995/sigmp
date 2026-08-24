@@ -15,7 +15,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/nueva-solicitud")({
   head: () => ({
     meta: [
-      { title: "Nueva solicitud — Soporte Sistemas" },
+      { title: "Nueva solicitud - Soporte Sistemas" },
       { name: "description", content: "Registrá un nuevo pedido al Área de Sistemas." },
     ],
   }),

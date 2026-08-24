@@ -23,7 +23,7 @@ import { BarChart3 } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/admin/estadisticas")({
   head: () => ({
     meta: [
-      { title: "Estadísticas — Administración" },
+      { title: "Estadísticas - Administración" },
       { name: "description", content: "Métricas del servicio de soporte técnico." },
     ],
   }),
