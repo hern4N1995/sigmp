@@ -138,7 +138,7 @@ function Estadisticas() {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.02 160)" />
                 <XAxis dataKey="fecha" stroke="oklch(0.68 0.02 155)" fontSize={12} />
                 <YAxis stroke="oklch(0.68 0.02 155)" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "oklch(0.21 0.025 160)", border: "1px solid oklch(0.28 0.02 160)", borderRadius: 8 }} />
+                <Tooltip wrapperClassName="app-chart-tooltip" contentStyle={{ background: "var(--chart-tooltip-background)", border: "1px solid var(--chart-tooltip-border)", borderRadius: 8, boxShadow: "var(--chart-tooltip-shadow)" }} labelStyle={{ color: "var(--chart-tooltip-foreground)" }} itemStyle={{ color: "var(--chart-tooltip-foreground)" }} />
                 <Line type="monotone" dataKey="cantidad" stroke="oklch(0.72 0.17 155)" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -153,7 +153,7 @@ function Estadisticas() {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.02 160)" />
                 <XAxis type="number" stroke="oklch(0.68 0.02 155)" fontSize={12} allowDecimals={false} />
                 <YAxis dataKey="area" type="category" stroke="oklch(0.68 0.02 155)" fontSize={12} width={100} />
-                <Tooltip contentStyle={{ background: "oklch(0.21 0.025 160)", border: "1px solid oklch(0.28 0.02 160)", borderRadius: 8 }} />
+                <Tooltip wrapperClassName="app-chart-tooltip" contentStyle={{ background: "var(--chart-tooltip-background)", border: "1px solid var(--chart-tooltip-border)", borderRadius: 8, boxShadow: "var(--chart-tooltip-shadow)" }} labelStyle={{ color: "var(--chart-tooltip-foreground)" }} itemStyle={{ color: "var(--chart-tooltip-foreground)" }} />
                 <Bar dataKey="cantidad" fill="oklch(0.72 0.17 155)" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -169,7 +169,7 @@ function Estadisticas() {
                   {urgencias.map((e, i) => (<Cell key={i} fill={e.color} />))}
                 </Pie>
                 <Legend />
-                <Tooltip contentStyle={{ background: "oklch(0.21 0.025 160)", border: "1px solid oklch(0.28 0.02 160)", borderRadius: 8 }} />
+                <Tooltip wrapperClassName="app-chart-tooltip" contentStyle={{ background: "var(--chart-tooltip-background)", border: "1px solid var(--chart-tooltip-border)", borderRadius: 8, boxShadow: "var(--chart-tooltip-shadow)" }} labelStyle={{ color: "var(--chart-tooltip-foreground)" }} itemStyle={{ color: "var(--chart-tooltip-foreground)" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -184,7 +184,7 @@ function Estadisticas() {
                   {estados.map((e, i) => (<Cell key={i} fill={e.color} />))}
                 </Pie>
                 <Legend />
-                <Tooltip contentStyle={{ background: "oklch(0.21 0.025 160)", border: "1px solid oklch(0.28 0.02 160)", borderRadius: 8 }} />
+                <Tooltip wrapperClassName="app-chart-tooltip" contentStyle={{ background: "var(--chart-tooltip-background)", border: "1px solid var(--chart-tooltip-border)", borderRadius: 8, boxShadow: "var(--chart-tooltip-shadow)" }} labelStyle={{ color: "var(--chart-tooltip-foreground)" }} itemStyle={{ color: "var(--chart-tooltip-foreground)" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>

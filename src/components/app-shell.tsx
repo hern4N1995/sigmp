@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/footer";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -21,12 +22,14 @@ function useTheme() {
     const initial = saved ?? "dark";
     setTheme(initial);
     document.documentElement.classList.toggle("light", initial === "light");
+    document.documentElement.classList.toggle("dark", initial === "dark");
   }, []);
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     localStorage.setItem("theme", next);
     document.documentElement.classList.toggle("light", next === "light");
+    document.documentElement.classList.toggle("dark", next === "dark");
   };
   return { theme, toggle };
 }
@@ -151,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const NavItems = () => (
     <>
-      <div className="px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="app-shell-nav-label px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {isAdmin ? (
           <span className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5" /> Administración</span>
         ) : (
@@ -167,9 +170,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             to={l.to}
             onClick={() => setOpen(false)}
             className={cn(
-              "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "app-shell-nav-item flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-primary/15 text-primary"
+                ? "app-shell-nav-item-active bg-primary/15 text-primary"
                 : "text-foreground/80 hover:bg-accent/40 hover:text-foreground",
             )}
           >
@@ -191,8 +194,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const ProfileMenu = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 pl-2 pr-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <Button variant="ghost" size="sm" className="app-shell-user-button gap-2 pl-2 pr-3">
+          <div className="app-shell-user-avatar flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
             <UserCircle className="h-4 w-4" />
           </div>
           <span className="hidden max-w-[140px] truncate text-sm sm:inline">
@@ -226,9 +229,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Sidebar desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-sidebar lg:flex">
+      <aside className="app-shell-sidebar fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-sidebar lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border px-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <ShieldCheck className="h-5 w-5" />
@@ -244,29 +247,52 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Desktop header */}
-      <header className="sticky top-0 z-20 hidden h-16 items-center justify-end border-b border-border bg-background/80 px-6 backdrop-blur lg:flex lg:pl-[17rem]">
-        {isAdmin && pending > 0 && (
-          <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="relative mr-3 rounded-md p-1 hover:bg-accent">
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-              {pending}
-            </span>
-          </button>
-        )}
-        <ProfileMenu />
+      <header className="app-shell-header fixed inset-x-0 top-0 z-40 hidden h-16 items-center border-b border-border bg-background/80 px-6 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur lg:flex">
+        <div className="mr-auto flex items-center gap-3">
+          <div className="app-shell-favicon flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
+            <img
+              src="/favicon.png"
+              alt="Ministerio de Producción"
+              className="h-9 w-9 rounded-md object-cover"
+            />
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-bold text-foreground">Área de Sistemas</div>
+            <div className="text-[11px] text-muted-foreground">Ministerio de Producción</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {isAdmin && pending > 0 && (
+            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="app-shell-bell-button relative rounded-md p-1 hover:bg-accent">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                {pending}
+              </span>
+            </button>
+          )}
+          <ProfileMenu />
+        </div>
       </header>
 
       {/* Mobile header */}
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur lg:hidden">
+      <header className="app-shell-header fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur lg:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <ShieldCheck className="h-4 w-4" />
+          <div className="app-shell-favicon flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <img
+              src="/favicon.png"
+              alt="Ministerio de Producción"
+              className="h-8 w-8 rounded-sm object-cover"
+            />
           </div>
-          <span className="text-sm font-semibold">Soporte Sistemas</span>
+          <div className="leading-tight">
+            <div className="text-[11px] font-semibold text-foreground">Área de Sistemas</div>
+            <div className="text-[10px] text-muted-foreground">Min. Producción</div>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {isAdmin && pending > 0 && (
-            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="relative mr-1 rounded-md p-1 hover:bg-accent">
+            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="app-shell-bell-button relative mr-1 rounded-md p-1 hover:bg-accent">
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                 {pending}
@@ -289,9 +315,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="lg:pl-64">
+      <main className="flex-1 pt-20 pb-56 lg:pl-64 lg:pt-24 lg:pb-48">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10">{children}</div>
       </main>
+
+      <Footer />
     </div>
   );
 }

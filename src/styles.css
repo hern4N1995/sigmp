@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -79,6 +80,10 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 150);
   --sidebar-border: oklch(0.28 0.02 160);
   --sidebar-ring: oklch(0.72 0.17 155);
+  --chart-tooltip-background: oklch(0.21 0.07 155);
+  --chart-tooltip-foreground: #f1fff5;
+  --chart-tooltip-border: oklch(0.36 0.08 155);
+  --chart-tooltip-shadow: 0 8px 20px rgba(0, 0, 0, 0.42);
 }
 
 /* Optional light mode */
@@ -110,6 +115,243 @@
   --sidebar-accent-foreground: oklch(0.2 0.03 160);
   --sidebar-border: oklch(0.9 0.01 150);
   --sidebar-ring: oklch(0.55 0.16 155);
+  --chart-tooltip-background: #ffffff;
+  --chart-tooltip-foreground: #111111;
+  --chart-tooltip-border: #d9e4dc;
+  --chart-tooltip-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.light .app-shell-header,
+.light .app-shell-footer {
+  background: linear-gradient(
+    90deg,
+    rgba(201, 211, 0, 0.96) 0%,
+    rgba(201, 211, 0, 0.96) 8%,
+    rgba(160, 199, 33, 0.96) 18%,
+    rgba(90, 169, 58, 0.96) 64%,
+    rgba(0, 144, 47, 0.96) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #0b3d21;
+}
+
+.light .app-shell-footer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 144, 47, 0.96) 0%,
+    rgba(90, 169, 58, 0.96) 36%,
+    rgba(160, 199, 33, 0.96) 82%,
+    rgba(201, 211, 0, 0.96) 92%,
+    rgba(201, 211, 0, 0.96) 100%
+  );
+}
+
+.light .app-shell-sidebar {
+  background: linear-gradient(
+    180deg,
+    #c9d300 0%,
+    #c9d300 8%,
+    #a0c721 18%,
+    #5aa93a 64%,
+    #00902f 100%
+  );
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #0d5128;
+}
+
+.light .app-shell-favicon {
+  background: rgba(151, 203, 80, 0.55);
+}
+
+.dark .app-shell-favicon {
+  background: rgba(42, 132, 69, 0.5);
+}
+
+.dark .app-shell-header {
+  background-color: color-mix(in srgb, var(--background) 94%, transparent) !important;
+}
+
+.dark .app-shell-footer {
+  background-color: color-mix(in srgb, var(--card) 96%, transparent) !important;
+}
+
+.light .app-shell-header .text-foreground,
+.light .app-shell-header .text-muted-foreground,
+.light .app-shell-footer .text-foreground,
+.light .app-shell-footer .text-muted-foreground,
+.light .app-shell-sidebar .text-foreground,
+.light .app-shell-sidebar .text-muted-foreground {
+  color: #0b3d21 !important;
+}
+
+.light .app-shell-nav-label {
+  color: rgba(11, 61, 33, 0.95) !important;
+}
+
+.light .app-shell-nav-item {
+  color: #0b3d21;
+}
+
+.light .app-shell-nav-item:hover {
+  background: rgba(255, 255, 255, 0.19);
+  color: #0d5128;
+}
+
+.light .app-shell-nav-item-active {
+  background: rgba(255, 255, 255, 0.34) !important;
+  color: #0d5128 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.light .app-shell-nav-item svg,
+.light .app-shell-nav-item-active svg,
+.light .app-shell-user-button svg,
+.light .app-shell-bell-button svg {
+  color: currentColor;
+}
+
+.light .app-shell-user-button {
+  color: #0b3d21;
+}
+
+.light .app-shell-user-button span {
+  color: #0b3d21 !important;
+}
+
+.light .app-shell-user-button .bg-primary\/15 {
+  background-color: rgba(11, 61, 33, 0.12) !important;
+  color: #0b3d21 !important;
+}
+
+.light .app-shell-user-avatar {
+  background: #63b257 !important;
+  color: #0d5128 !important;
+}
+
+.light .app-shell-user-button:hover {
+  background: rgba(255, 255, 255, 0.19);
+  color: #0d5128;
+}
+
+.light .app-shell-user-button:hover span {
+  color: #0d5128 !important;
+}
+
+.light .app-shell-bell-button {
+  color: rgba(11, 61, 33, 0.95);
+}
+
+.light .app-shell-bell-button:hover {
+  background: rgba(255, 255, 255, 0.19);
+  color: #0d5128;
+}
+
+.light .app-shell-footer-links,
+.light .app-shell-footer-copy,
+.light .app-shell-footer-link,
+.light .app-shell-footer a {
+  color: #0b3d21 !important;
+}
+
+.light .app-shell-footer-links a:hover,
+.light .app-shell-footer-link:hover,
+.light .app-shell-footer a:hover {
+  color: #ffffff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.light .app-shell-social-link {
+  border-color: #0b3d21;
+  background: rgba(255, 255, 255, 0.16);
+  color: #0d5128;
+}
+
+.light .app-shell-social-link:hover {
+  background-color: #61a358 !important;
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+}
+
+.dark .app-shell-footer-links a,
+.dark .app-shell-footer-link,
+.dark .app-shell-footer a {
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 150ms ease;
+}
+
+.dark .app-shell-footer-links a:hover,
+.dark .app-shell-footer-link:hover,
+.dark .app-shell-footer a:hover {
+  color: #22c373 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  opacity: 1;
+}
+
+.dark .app-shell-social-link {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.dark .app-shell-social-link:hover {
+  background: rgba(34, 195, 115, 0.12);
+  border-color: #22c373;
+  color: #22c373;
+}
+
+:root:not(.light) .app-shell-footer-links a,
+:root:not(.light) .app-shell-footer-link,
+:root:not(.light) .app-shell-footer a {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:root:not(.light) .app-shell-footer-links a:hover,
+:root:not(.light) .app-shell-footer-link:hover,
+:root:not(.light) .app-shell-footer a:hover {
+  color: #22c373 !important;
+}
+
+:root:not(.light) .app-shell-social-link {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:root:not(.light) .app-shell-social-link:hover {
+  background: rgba(34, 195, 115, 0.12);
+  border-color: #22c373;
+  color: #22c373;
+}
+
+.app-chart-tooltip .recharts-default-tooltip {
+  color: var(--foreground) !important;
+}
+
+.light .app-chart-tooltip .recharts-default-tooltip {
+  background: var(--chart-tooltip-background) !important;
+  border-color: var(--chart-tooltip-border) !important;
+  color: var(--chart-tooltip-foreground) !important;
+}
+
+.light .app-chart-tooltip .recharts-tooltip-label,
+.light .app-chart-tooltip .recharts-tooltip-item,
+.light .app-chart-tooltip .recharts-tooltip-item-list {
+  color: #111111 !important;
+}
+
+:root:not(.light) .app-chart-tooltip .recharts-default-tooltip {
+  background: var(--chart-tooltip-background) !important;
+  border-color: var(--chart-tooltip-border) !important;
+  color: var(--chart-tooltip-foreground) !important;
+}
+
+:root:not(.light) .app-chart-tooltip .recharts-tooltip-label,
+:root:not(.light) .app-chart-tooltip .recharts-tooltip-item,
+:root:not(.light) .app-chart-tooltip .recharts-tooltip-item-list {
+  color: #f1fff5 !important;
 }
 
 @layer base {
@@ -119,6 +361,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: "Montserrat", sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }

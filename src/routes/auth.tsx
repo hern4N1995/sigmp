@@ -5,16 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Footer } from "@/components/footer";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Ingresar — Soporte Sistemas | Ministerio de Producción" },
+      { title: "Ingresar - Soporte Sistemas | Ministerio de Producción" },
       { name: "description", content: "Portal interno para registrar y gestionar solicitudes de soporte técnico." },
       { property: "og:title", content: "Portal de Soporte Técnico" },
-      { property: "og:description", content: "Ministerio de Producción — Área de Sistemas" },
+      { property: "og:description", content: "Ministerio de Producción - Área de Sistemas" },
     ],
   }),
   ssr: false,
@@ -54,7 +55,6 @@ function AuthPage() {
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -72,29 +72,63 @@ function AuthPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
       <div className="absolute inset-0 -z-10 opacity-40">
         <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
       </div>
 
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-12 lg:grid lg:grid-cols-2 lg:gap-12 lg:py-0">
-        <div className="mb-8 max-w-md text-center lg:mb-0 lg:text-left">
-          <div className="mb-6 inline-flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-primary">Ministerio de Producción</div>
-              <div className="text-xs text-muted-foreground">Área de Sistemas</div>
-            </div>
+      <header className="app-shell-header flex h-14 items-center border-b border-border bg-background/80 px-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur lg:h-16 lg:px-6">
+        <div className="flex w-full items-center gap-3">
+          <div className="app-shell-favicon flex h-10 w-10 items-center justify-center rounded-lg bg-primary p-1 shadow-sm shadow-primary/20 lg:h-11 lg:w-11">
+            <img
+              src="/favicon.png"
+              alt="Ministerio de Producción"
+              className="h-full w-full rounded-md object-cover"
+            />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-            Mesa de Ayuda <span className="text-primary">Interna</span>
+          <div className="leading-tight">
+            <div className="text-xs font-bold text-foreground sm:text-sm">Ministerio de Producción</div>
+            <div className="text-[10px] text-muted-foreground sm:text-[11px]">Área de Sistemas</div>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-start">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-start px-4 py-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] lg:gap-10 lg:py-10 lg:px-8">
+        <div className="mb-8 w-full max-w-2xl text-center lg:mb-0 lg:text-left">
+          
+          <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]">
+            Sistema Integral de Gestión del Ministerio de Producción
           </h1>
-          <p className="mt-4 text-base text-muted-foreground">
-            Registrá tus solicitudes de soporte técnico y hacé seguimiento en tiempo real.
-          </p>
+          <p className="mt-4 text-lg font-medium text-primary">Seguimiento en tiempo real</p>
+
+          <section className="mt-8 border-t border-border/70 pt-6">
+            <h2 className="text-center text-xl font-semibold text-primary lg:text-left">
+              ¿Qué es el Sistema Integral de Gestión?
+            </h2>
+            <div className="mt-4 space-y-3 text-left text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p>
+                Es una página web diseñada para optimizar y centralizar procesos administrativos y
+                operativos. Su objetivo principal es simplificar la organización, seguimiento y
+                evaluación de tareas y recursos. Este sistema incluye funcionalidades clave como:
+              </p>
+              <p>
+                <strong className="font-semibold text-foreground">Gestión de turnos:</strong> permitirá
+                a los usuarios solicitar turnos para la asistencia en la resolución de problemas,
+                agilizando el proceso y reduciendo tiempos de espera.
+              </p>
+              <p>
+                <strong className="font-semibold text-foreground">Sistema de calificaciones:</strong> ofrece
+                un apartado donde los usuarios pueden evaluar la calidad de la asistencia recibida,
+                proporcionando datos valiosos para mejorar el servicio.
+              </p>
+              <p>
+                Este sistema no solo mejora la experiencia del usuario, sino que también ayuda a
+                recopilar información útil para la toma de decisiones estratégicas.
+              </p>
+            </div>
+          </section>
         </div>
 
         <Card className="w-full max-w-md border-border bg-card/70 p-6 backdrop-blur">
@@ -174,7 +208,9 @@ function AuthPage() {
             </Button>
           </form>
         </Card>
-      </div>
+        </div>
+      </main>
+      <Footer fixed={false} />
     </div>
   );
 }
