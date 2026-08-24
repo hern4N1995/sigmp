@@ -88,8 +88,8 @@ function AuthPage() {
             />
           </div>
           <div className="leading-tight">
-            <div className="text-xs font-bold text-foreground sm:text-sm">Ministerio de Producción</div>
-            <div className="text-[10px] text-muted-foreground sm:text-[11px]">Área de Sistemas</div>
+            <div className="text-xs font-bold text-foreground sm:text-sm">Área de Sistemas</div>
+            <div className="text-[10px] text-muted-foreground sm:text-[11px]">Ministerio de Producción</div>
           </div>
         </div>
       </header>
