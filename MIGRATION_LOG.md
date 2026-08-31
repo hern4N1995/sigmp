@@ -4,6 +4,62 @@ Registro cronológico del progreso de la migración fuera de Lovable.
 
 ## Hecho
 
+### 2026-08-28 — Filtros integrados en gráficos
+- Los filtros de área y mes ahora están ubicados dentro de sus gráficos correspondientes, manteniendo su aplicación conjunta sobre las métricas.
+
+### 2026-08-28 — Estabilidad de filtros de estadísticas
+- Se cargan todas las áreas del catálogo, incluso las que todavía no tienen solicitudes.
+- Se reservó el espacio de la barra vertical para evitar movimientos del header, footer y contenido al abrir los desplegables.
+
+### 2026-08-28 — Filtros en estadísticas
+- Se agregaron filtros por área y mes en la vista administrativa de estadísticas.
+- Los filtros se aplican a todos los gráficos y al promedio de tiempo de resolución.
+
+### 2026-08-28 — Eliminación administrativa de usuarios
+- Se agregó la función RPC `eliminar_usuario(UUID)`, restringida a administradores y protegida contra autoeliminación.
+- La pantalla de usuarios ahora ofrece acciones con sólo los iconos de lápiz y X, con confirmación antes de eliminar.
+
+### 2026-08-28 — Formato de fecha y carga de área
+- El listado administrativo muestra la columna `FECHA / HORA` en formato de 24 horas.
+- La vista administrativa y el formulario de nueva solicitud resuelven el área desde `area_id`, conservando el texto anterior como fallback.
+
+### 2026-08-28 — Historial reducido y eliminación de canceladas
+- `mis-solicitudes.tsx` ahora consulta sólo las cuatro solicitudes más recientes, ordenadas por fecha descendente.
+- Se agregó la migración `20260828000005_empleados_eliminar_canceladas.sql` con una policy que permite a cada empleado eliminar únicamente sus propias solicitudes en estado `cancelado`.
+- Se agregó confirmación y eliminación desde el listado del empleado; las solicitudes `visto` no tienen esta acción porque se eliminan automáticamente.
+
+### 2026-08-28 — Detalle administrativo y borrado de solicitudes vistas
+- Se completó el detalle de sólo lectura del administrador con empleado, área, descripción completa, fechas, motivo de cancelación, responsable y colaborador.
+- Se agregó `20260828000004_borrar_solicitudes_vistas.sql`, que elimina automáticamente una solicitud al pasar de `cancelado` a `visto` mediante un trigger `AFTER UPDATE` `SECURITY DEFINER`.
+- El listado administrativo vuelve a consultar los datos después de actualizar el estado; la policy de borrado de administradores no interviene en el trigger.
+
+### 2026-08-28 — Detalle y correcciones en solicitudes del empleado
+- El botón “Cancelar” sólo aparece para solicitudes `en_espera` o `en_proceso` creadas durante el día actual; no aparece para `finalizado`, `cancelado` ni `visto`.
+- Se agregó un detalle de sólo lectura con la información completa de cada solicitud y se protegieron los textos largos contra desbordes.
+
+### 2026-08-28 — Permiso para cancelar solicitudes con motivo
+- Se agregó la migración `20260828000003_grant_admin_update_function.sql` para otorgar `EXECUTE` a `authenticated` sobre `admin_puede_actualizar_solicitud(UUID, TEXT)`.
+- La policy de cancelación de empleados permanece independiente; el permiso evita que la evaluación de la policy administrativa bloquee cancelaciones legítimas.
+
+### 2026-08-28 — Protección de solicitudes canceladas
+- Se agregó `visto` al estado de solicitudes y una protección de base de datos que impide que una solicitud cancelada vuelva a `en_proceso` o `finalizado`.
+- El botón de acción administrativa de una solicitud cancelada la marca como `visto`, sin abrir la asignación de colaborador.
+- Las métricas contemplan `cancelado` y `visto` como estados no atendidos; sólo `finalizado` participa del promedio de resolución.
+
+### 2026-08-28 — Cancelación de solicitudes por empleados
+- Se agregó la migración `20260828000001_cancelacion_solicitudes.sql` con el estado `cancelado`, el motivo de cancelación y una policy para cancelar solicitudes propias creadas durante el día actual.
+- Los empleados pueden cancelar sus solicitudes del día indicando un motivo obligatorio; administración visualiza el motivo en el detalle.
+
+### 2026-08-28 — Asignación de responsables y colaboradores en solicitudes
+- Se agregó la migración `20260828000000_asignacion_solicitudes.sql` con `asignado_a`, `colaborador_id` y asignación automática del responsable al primer cambio desde `en_espera`.
+- La vista administrativa muestra responsable y colaborador, permite filtrar las solicitudes asignadas al administrador logueado y ofrece un colaborador opcional al finalizar.
+- La policy existente de UPDATE para administradores ya permite escribir `colaborador_id` porque cubre la fila completa.
+
+### 2026-08-27 — Flujo de recuperación de contraseña
+- Se agregó el enlace “¿Olvidaste tu contraseña?” debajo del formulario de login.
+- Se crearon las rutas `/recuperar-password` y `/actualizar-password` con integración a Supabase Auth.
+- Ambos formularios incluyen estados de carga, error y éxito para guiar al usuario durante la recuperación.
+
 ### 2026-08-19 — Catálogo de áreas y selección por combobox
 - Se creó la migración `20260819000000_create_areas.sql` con el catálogo oficial de áreas, RLS de lectura para usuarios autenticados y la relación `profiles.area_id`.
 - El formulario de completar perfil ahora carga las áreas desde Supabase, permite buscarlas sin distinguir mayúsculas ni acentos y guarda el UUID seleccionado.

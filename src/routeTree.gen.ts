@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as ActualizarPasswordRouteImport } from './routes/actualizar-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ForbiddenRouteImport } from './routes/forbidden'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RecuperarPasswordRouteImport } from './routes/recuperar-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -35,6 +37,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActualizarPasswordRoute = ActualizarPasswordRouteImport.update({
+  id: '/actualizar-password',
+  path: '/actualizar-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -48,6 +55,11 @@ const ForbiddenRoute = ForbiddenRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarPasswordRoute = RecuperarPasswordRouteImport.update({
+  id: '/recuperar-password',
+  path: '/recuperar-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -114,9 +126,11 @@ const AuthenticatedAdminUsuariosRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/actualizar-password': typeof ActualizarPasswordRoute
   '/auth': typeof AuthRoute
   '/forbidden': typeof ForbiddenRoute
   '/privacy': typeof PrivacyRoute
+  '/recuperar-password': typeof RecuperarPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -131,9 +145,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/actualizar-password': typeof ActualizarPasswordRoute
   '/auth': typeof AuthRoute
   '/forbidden': typeof ForbiddenRoute
   '/privacy': typeof PrivacyRoute
+  '/recuperar-password': typeof RecuperarPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/completar-perfil': typeof AuthenticatedCompletarPerfilRoute
@@ -149,9 +165,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/actualizar-password': typeof ActualizarPasswordRoute
   '/auth': typeof AuthRoute
   '/forbidden': typeof ForbiddenRoute
   '/privacy': typeof PrivacyRoute
+  '/recuperar-password': typeof RecuperarPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -168,9 +186,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/actualizar-password'
     | '/auth'
     | '/forbidden'
     | '/privacy'
+    | '/recuperar-password'
     | '/sitemap.xml'
     | '/terms'
     | '/admin'
@@ -185,9 +205,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/actualizar-password'
     | '/auth'
     | '/forbidden'
     | '/privacy'
+    | '/recuperar-password'
     | '/sitemap.xml'
     | '/terms'
     | '/completar-perfil'
@@ -202,9 +224,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/actualizar-password'
     | '/auth'
     | '/forbidden'
     | '/privacy'
+    | '/recuperar-password'
     | '/sitemap.xml'
     | '/terms'
     | '/_authenticated/admin'
@@ -221,9 +245,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ActualizarPasswordRoute: typeof ActualizarPasswordRoute
   AuthRoute: typeof AuthRoute
   ForbiddenRoute: typeof ForbiddenRoute
   PrivacyRoute: typeof PrivacyRoute
+  RecuperarPasswordRoute: typeof RecuperarPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
 }
@@ -242,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/actualizar-password': {
+      id: '/actualizar-password'
+      path: '/actualizar-password'
+      fullPath: '/actualizar-password'
+      preLoaderRoute: typeof ActualizarPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -263,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar-password': {
+      id: '/recuperar-password'
+      path: '/recuperar-password'
+      fullPath: '/recuperar-password'
+      preLoaderRoute: typeof RecuperarPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -387,9 +427,11 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ActualizarPasswordRoute: ActualizarPasswordRoute,
   AuthRoute: AuthRoute,
   ForbiddenRoute: ForbiddenRoute,
   PrivacyRoute: PrivacyRoute,
+  RecuperarPasswordRoute: RecuperarPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
 }

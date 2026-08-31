@@ -51,7 +51,12 @@ function NuevaSolicitud() {
       const { data: area } = p?.area_id
         ? await supabase.from("areas").select("nombre_corto").eq("id", p.area_id).maybeSingle()
         : { data: null };
-      setProfile({ ...p, area: area?.nombre_corto ?? p?.area ?? "" } as any);
+      setProfile({
+        nombre: p?.nombre ?? "",
+        apellido: p?.apellido ?? "",
+        perfil_completo: p?.perfil_completo ?? false,
+        area: area?.nombre_corto ?? p?.area ?? "",
+      });
     });
   }, [navigate]);
 
@@ -112,6 +117,7 @@ function NuevaSolicitud() {
               <Label htmlFor="motivo">Motivo del pedido</Label>
               <Input
                 id="motivo"
+                className="break-all"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 placeholder="Ej: No enciende la computadora"
@@ -127,6 +133,7 @@ function NuevaSolicitud() {
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 placeholder="Detallá lo que sucede y cuándo comenzó..."
+                className="break-words whitespace-pre-wrap"
                 required
               />
             </div>

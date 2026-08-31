@@ -84,36 +84,60 @@ export type Database = {
       }
       solicitudes: {
         Row: {
+          asignado_a: string | null
+          colaborador_id: string | null
           descripcion: string
           estado: Database["public"]["Enums"]["estado_solicitud"]
           fecha_creacion: string
           fecha_finalizacion: string | null
           id: string
           motivo: string
+          motivo_cancelacion: string | null
           urgencia: Database["public"]["Enums"]["urgencia"]
           usuario_id: string
         }
         Insert: {
+          asignado_a?: string | null
+          colaborador_id?: string | null
           descripcion: string
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_creacion?: string
           fecha_finalizacion?: string | null
           id?: string
           motivo: string
+          motivo_cancelacion?: string | null
           urgencia?: Database["public"]["Enums"]["urgencia"]
           usuario_id: string
         }
         Update: {
+          asignado_a?: string | null
+          colaborador_id?: string | null
           descripcion?: string
           estado?: Database["public"]["Enums"]["estado_solicitud"]
           fecha_creacion?: string
           fecha_finalizacion?: string | null
           id?: string
           motivo?: string
+          motivo_cancelacion?: string | null
           urgencia?: Database["public"]["Enums"]["urgencia"]
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_asignado_a_fkey"
+            columns: ["asignado_a"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -141,6 +165,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      eliminar_usuario: {
+        Args: {
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -151,7 +181,7 @@ export type Database = {
     }
     Enums: {
       app_role: "empleado" | "administrador"
-      estado_solicitud: "en_espera" | "en_proceso" | "finalizado"
+      estado_solicitud: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto"
       urgencia: "urgente" | "normal"
     }
     CompositeTypes: {

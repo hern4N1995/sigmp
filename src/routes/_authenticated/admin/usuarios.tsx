@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Pencil, Loader2 } from "lucide-react";
+import { Users, Pencil, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 type Role = "administrador" | "empleado";
@@ -52,6 +52,8 @@ function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Row | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingDeletion, setPendingDeletion] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ nombre: "", apellido: "", area: "", role: "empleado" as Role });
 
   const load = async () => {
@@ -107,6 +109,20 @@ function UsuariosPage() {
     setSaving(false);
     setEditing(null);
     load();
+  };
+
+  const removeUser = async () => {
+    if (!pendingDeletion) return;
+    setDeleting(true);
+    const { error } = await supabase.rpc("eliminar_usuario", { _user_id: pendingDeletion.id });
+    setDeleting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Usuario eliminado");
+    setPendingDeletion(null);
+    await load();
   };
 
   return (
@@ -170,9 +186,26 @@ function UsuariosPage() {
                       {new Date(r.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                        <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => openEdit(r)}
+                          aria-label={`Editar usuario ${r.email ?? ""}`}
+                          title="Editar usuario"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => setPendingDeletion(r)}
+                          aria-label={`Eliminar usuario ${r.email ?? ""}`}
+                          title="Eliminar usuario"
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -220,6 +253,26 @@ function UsuariosPage() {
             <Button onClick={save} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pendingDeletion} onOpenChange={(open) => !open && setPendingDeletion(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar usuario</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            ¿Eliminar a {pendingDeletion?.nombre} {pendingDeletion?.apellido} ({pendingDeletion?.email})? Esta acción no se puede deshacer.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDeletion(null)} disabled={deleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={() => void removeUser()} disabled={deleting}>
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Eliminar usuario
             </Button>
           </DialogFooter>
         </DialogContent>

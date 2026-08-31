@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, CircleDot, CircleCheck } from "lucide-react";
+import { AlertTriangle, Clock, CircleDot, CircleCheck, CircleX, Eye } from "lucide-react";
 
 export function UrgenciaBadge({ value }: { value: "urgente" | "normal" }) {
   if (value === "urgente")
@@ -15,7 +15,7 @@ export function UrgenciaBadge({ value }: { value: "urgente" | "normal" }) {
   );
 }
 
-export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "finalizado" }) {
+export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto" }) {
   if (value === "en_espera")
     return (
       <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-400">
@@ -26,6 +26,18 @@ export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "fi
     return (
       <Badge variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-400">
         <CircleDot className="mr-1 h-3 w-3" /> En proceso
+      </Badge>
+    );
+  if (value === "cancelado")
+    return (
+      <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+        <CircleX className="mr-1 h-3 w-3" /> Cancelado
+      </Badge>
+    );
+  if (value === "visto")
+    return (
+      <Badge variant="outline" className="border-muted-foreground/40 bg-muted/40 text-muted-foreground">
+        <Eye className="mr-1 h-3 w-3" /> Visto
       </Badge>
     );
   return (
