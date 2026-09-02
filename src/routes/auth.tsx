@@ -99,13 +99,13 @@ function AuthPage() {
         <div className="mb-8 w-full max-w-2xl text-center lg:mb-0 lg:text-left">
           
           <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]">
-            Sistema Integral de Gestión del Ministerio de Producción
+            Sistema Interno de Gestión del Ministerio de Producción
           </h1>
           <p className="mt-4 text-lg font-medium text-primary">Seguimiento en tiempo real</p>
 
           <section className="mt-8 border-t border-border/70 pt-6">
             <h2 className="text-center text-xl font-semibold text-primary lg:text-left">
-              ¿Qué es el Sistema Integral de Gestión?
+              ¿Qué es el Sistema Interno de Gestión?
             </h2>
             <div className="mt-4 space-y-3 text-left text-sm leading-relaxed text-muted-foreground sm:text-base">
               <p>

@@ -26,7 +26,7 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
                 <DialogHeader>
                   <DialogTitle>Privacidad y tratamiento de datos</DialogTitle>
                   <DialogDescription>
-                    Información sobre el uso de los datos dentro del Sistema Integral de Gestión.
+                    Información sobre el uso de los datos dentro del Sistema Interno de Gestión.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 text-sm leading-7 text-muted-foreground">
@@ -58,7 +58,7 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
                 <DialogHeader>
                   <DialogTitle>Uso de la plataforma</DialogTitle>
                   <DialogDescription>
-                    Términos y condiciones para utilizar el Sistema Integral de Gestión.
+                    Términos y condiciones para utilizar el Sistema Interno de Gestión.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 text-sm leading-7 text-muted-foreground">
