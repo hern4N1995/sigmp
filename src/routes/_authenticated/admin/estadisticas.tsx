@@ -84,7 +84,7 @@ function Estadisticas() {
     load();
   }, []);
 
-  const monthOptions = useMemo(() => {item.usuario_id ? areas.get(item.usuario_id) ?? "Sin área" : item.solicitante_area
+  const monthOptions = useMemo(() => {
     const months = Array.from(new Set(items.map((item) => item.fecha_creacion.slice(0, 7)))).sort().reverse();
     return months.map((value) => ({
       value,
