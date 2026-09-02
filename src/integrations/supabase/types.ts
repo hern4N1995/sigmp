@@ -93,8 +93,11 @@ export type Database = {
           id: string
           motivo: string
           motivo_cancelacion: string | null
+          solicitante_area: string | null
+          solicitante_email: string | null
+          solicitante_nombre: string | null
           urgencia: Database["public"]["Enums"]["urgencia"]
-          usuario_id: string
+          usuario_id: string | null
         }
         Insert: {
           asignado_a?: string | null
@@ -106,8 +109,11 @@ export type Database = {
           id?: string
           motivo: string
           motivo_cancelacion?: string | null
+          solicitante_area?: string | null
+          solicitante_email?: string | null
+          solicitante_nombre?: string | null
           urgencia?: Database["public"]["Enums"]["urgencia"]
-          usuario_id: string
+          usuario_id?: string | null
         }
         Update: {
           asignado_a?: string | null
@@ -119,8 +125,11 @@ export type Database = {
           id?: string
           motivo?: string
           motivo_cancelacion?: string | null
+          solicitante_area?: string | null
+          solicitante_email?: string | null
+          solicitante_nombre?: string | null
           urgencia?: Database["public"]["Enums"]["urgencia"]
-          usuario_id?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {

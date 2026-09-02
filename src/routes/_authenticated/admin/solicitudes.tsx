@@ -26,7 +26,10 @@ type Row = {
   asignado_a: string | null;
   colaborador_id: string | null;
   id: string;
-  usuario_id: string;
+  usuario_id: string | null;
+  solicitante_nombre: string | null;
+  solicitante_email: string | null;
+  solicitante_area: string | null;
   motivo: string;
   descripcion: string;
   urgencia: "urgente" | "normal";
@@ -117,6 +120,8 @@ function AdminSolicitudes() {
           r.motivo.toLowerCase().includes(s) ||
           (r.profile?.nombre ?? "").toLowerCase().includes(s) ||
           (r.profile?.apellido ?? "").toLowerCase().includes(s) ||
+          (r.solicitante_nombre ?? "").toLowerCase().includes(s) ||
+          (r.solicitante_email ?? "").toLowerCase().includes(s) ||
           (r.profile?.area ?? "").toLowerCase().includes(s)
         );
       }
@@ -226,9 +231,9 @@ function AdminSolicitudes() {
                       })}
                     </td>
                     <td className="px-3 py-3 font-medium">
-                      {r.profile?.nombre} {r.profile?.apellido}
+                      {r.profile ? `${r.profile.nombre ?? ""} ${r.profile.apellido ?? ""}`.trim() : r.solicitante_nombre ?? "Usuario eliminado"}
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">{r.profile?.area}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{r.profile?.area ?? r.solicitante_area ?? "Sin área"}</td>
                     <td className="max-w-xs truncate px-3 py-3">{r.motivo}</td>
                     <td className="px-3 py-3"><UrgenciaBadge value={r.urgencia} /></td>
                     <td className="px-3 py-3">
@@ -290,15 +295,15 @@ function AdminSolicitudes() {
               <div className="grid gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-2">
                 <div>
                   <div className="text-xs text-muted-foreground">Empleado</div>
-                  <div className="break-words font-medium">{detail.profile?.nombre} {detail.profile?.apellido}</div>
+                  <div className="break-words font-medium">{detail.profile ? `${detail.profile.nombre ?? ""} ${detail.profile.apellido ?? ""}`.trim() : detail.solicitante_nombre ?? "Usuario eliminado"}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Área</div>
-                  <div className="break-words font-medium">{detail.profile?.area ?? "Sin área"}</div>
+                  <div className="break-words font-medium">{detail.profile?.area ?? detail.solicitante_area ?? "Sin área"}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Email</div>
-                  <div className="break-words font-medium">{detail.profile?.email}</div>
+                  <div className="break-words font-medium">{detail.profile?.email ?? detail.solicitante_email ?? "Sin email"}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Fecha de creación</div>

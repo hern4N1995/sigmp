@@ -33,7 +33,8 @@ export const Route = createFileRoute("/_authenticated/admin/estadisticas")({
 
 type Sol = {
   id: string;
-  usuario_id: string;
+  usuario_id: string | null;
+  solicitante_area: string | null;
   urgencia: "urgente" | "normal";
   estado: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto";
   fecha_creacion: string;
@@ -52,14 +53,14 @@ function Estadisticas() {
       const [{ data }, { data: catalogAreas }] = await Promise.all([
         supabase
           .from("solicitudes")
-          .select("id, usuario_id, urgencia, estado, fecha_creacion, fecha_finalizacion")
+          .select("id, usuario_id, solicitante_area, urgencia, estado, fecha_creacion, fecha_finalizacion")
           .order("fecha_creacion", { ascending: true }),
         supabase.from("areas").select("id, nombre_corto").order("nombre_corto"),
       ]);
       const list = (data as Sol[]) ?? [];
       setItems(list);
       setAreaOptions((catalogAreas ?? []).map((area) => area.nombre_corto));
-      const ids = Array.from(new Set(list.map((s) => s.usuario_id)));
+      const ids = Array.from(new Set(list.map((s) => s.usuario_id).filter((id): id is string => Boolean(id))));
       if (ids.length) {
         const { data: profs } = await supabase.from("profiles").select("id, area, area_id").in("id", ids);
         const areaIds = Array.from(new Set((profs ?? []).map((profile) => profile.area_id).filter((id): id is string => Boolean(id))));
@@ -67,13 +68,23 @@ function Estadisticas() {
           ? await supabase.from("areas").select("id, nombre_corto").in("id", areaIds)
           : { data: [] };
         const areaMap = new Map((areaRows ?? []).map((area) => [area.id, area.nombre_corto]));
-        setAreas(new Map((profs ?? []).map((p) => [p.id, p.area_id ? areaMap.get(p.area_id) ?? p.area ?? "Sin área" : p.area ?? "Sin área"])));
+        const areaMapByUser = new Map((profs ?? []).map((p) => [p.id, p.area_id ? areaMap.get(p.area_id) ?? p.area ?? "Sin área" : p.area ?? "Sin área"]));
+        // Crear mapa con IDs de usuarios y sus áreas, usando snapshot como fallback
+        const allAreas = new Map<string, string>();
+        list.forEach((s) => {
+          if (s.usuario_id) {
+            allAreas.set(s.usuario_id, areaMapByUser.get(s.usuario_id) ?? s.solicitante_area ?? "Sin área");
+          }
+        });
+        setAreas(allAreas);
+      } else {
+        setAreas(new Map());
       }
     };
     load();
   }, []);
 
-  const monthOptions = useMemo(() => {
+  const monthOptions = useMemo(() => {item.usuario_id ? areas.get(item.usuario_id) ?? "Sin área" : item.solicitante_area
     const months = Array.from(new Set(items.map((item) => item.fecha_creacion.slice(0, 7)))).sort().reverse();
     return months.map((value) => ({
       value,
@@ -108,7 +119,7 @@ function Estadisticas() {
   const porArea = useMemo(() => {
     const map = new Map<string, number>();
     filteredItems.forEach((s) => {
-      const a = areas.get(s.usuario_id) ?? "—";
+      const a = s.usuario_id ? areas.get(s.usuario_id) ?? "—" : s.solicitante_area ?? "—";
       map.set(a, (map.get(a) ?? 0) + 1);
     });
     return Array.from(map.entries())
