@@ -15,7 +15,7 @@ export function UrgenciaBadge({ value }: { value: "urgente" | "normal" }) {
   );
 }
 
-export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto" }) {
+export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto" | "pausado" }) {
   if (value === "en_espera")
     return (
       <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-400">
@@ -26,6 +26,12 @@ export function EstadoBadge({ value }: { value: "en_espera" | "en_proceso" | "fi
     return (
       <Badge variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-400">
         <CircleDot className="mr-1 h-3 w-3" /> En proceso
+      </Badge>
+    );
+  if (value === "pausado")
+    return (
+      <Badge variant="outline" className="border-orange-500/30 bg-orange-500/10 text-orange-400">
+        <Clock className="mr-1 h-3 w-3" /> Pausado
       </Badge>
     );
   if (value === "cancelado")

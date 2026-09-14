@@ -36,7 +36,7 @@ type Sol = {
   usuario_id: string | null;
   solicitante_area: string | null;
   urgencia: "urgente" | "normal";
-  estado: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto";
+  estado: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto" | "pausado";
   fecha_creacion: string;
   fecha_finalizacion: string | null;
 };
@@ -138,11 +138,12 @@ function Estadisticas() {
   }, [filteredItems]);
 
   const estados = useMemo(() => {
-    const c = { en_espera: 0, en_proceso: 0, finalizado: 0, cancelado: 0, visto: 0 };
+    const c = { en_espera: 0, en_proceso: 0, pausado: 0, finalizado: 0, cancelado: 0, visto: 0 };
     filteredItems.forEach((s) => c[s.estado]++);
     return [
       { name: "En espera", value: c.en_espera, color: "oklch(0.75 0.15 80)" },
       { name: "En proceso", value: c.en_proceso, color: "oklch(0.65 0.17 240)" },
+      { name: "Pausado", value: c.pausado, color: "oklch(0.72 0.13 70)" },
       { name: "Finalizado", value: c.finalizado, color: "oklch(0.72 0.17 155)" },
       { name: "Cancelado", value: c.cancelado, color: "oklch(0.65 0.22 25)" },
       { name: "Visto", value: c.visto, color: "oklch(0.68 0.02 155)" },

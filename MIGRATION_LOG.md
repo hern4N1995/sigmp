@@ -4,6 +4,19 @@ Registro cronológico del progreso de la migración fuera de Lovable.
 
 ## Hecho
 
+### 2026-09-03 — Estado pausado y motivos de pausa
+- Se agregó la migración `20260903000000_agregar_estado_pausado.sql` que introduce el estado `pausado` para solicitudes en reparación que requieren recursos externos.
+- Se creó la tabla `public.motivos_pausa` con valores predefinidos: "En espera de autorización de compra", "Falta de disco", "Falta de RAM", "Falta de fuente", "Falta de placa madre", y "Otro" (con opción de texto libre).
+- Se agregaron las columnas `motivo_pausa_id` y `motivo_pausa_detalle` a `solicitudes` para registrar el motivo y el detalle (solo para "Otro").
+- El estado `pausado` solo es alcanzable desde `en_proceso` y permite transiciones a `en_proceso` (retomar) o `finalizado`.
+- Se implementó validación mediante trigger para asegurar transiciones de estado válidas y campos obligatorios según el motivo elegido.
+- La UI administrativa ahora permite:
+  - Pausar una solicitud en `en_proceso` seleccionando un motivo de una lista desplegable con validación de campo de detalle para "Otro".
+  - Un filtro específico en el listado para ver solo solicitudes `pausado`.
+  - Retomarla (volver a `en_proceso`) o finalizarla directamente desde el estado pausado.
+- El badge de estado muestra `pausado` con color distintivo naranja/amarillo.
+- Las estadísticas ahora incluyen el conteo del estado `pausado` en el gráfico de distribución de estados.
+
 ### 2026-08-28 — Filtros integrados en gráficos
 - Los filtros de área y mes ahora están ubicados dentro de sus gráficos correspondientes, manteniendo su aplicación conjunta sobre las métricas.
 
