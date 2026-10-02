@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
-import { ClipboardList, Search, CheckCircle2, Download } from "lucide-react";
+import { ClipboardList, Search, CheckCircle2, Download, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/_authenticated/admin/solicitudes")({
   head: () => ({
     meta: [
-      { title: "Gestión de solicitudes - Administración" },
+      { title: "Solicitudes - SIG" },
       { name: "description", content: "Listado completo de solicitudes de soporte." },
     ],
   }),
@@ -54,7 +55,17 @@ type MotivosPausa = {
 
 type Person = { nombre: string | null; apellido: string | null; email: string | null };
 
-const ITEMS_PER_PAGE = 15;
+const DESKTOP_PAGE_SIZE = 7;
+const MOBILE_PAGE_SIZE = 3;
+
+function isOutOfRangeError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (("status" in error && error.status === 416) ||
+      ("code" in error && error.code === "PGRST103"))
+  );
+}
 
 const getMonthRange = () => {
   const now = new Date();
@@ -69,6 +80,8 @@ const getMonthRange = () => {
 
 function AdminSolicitudes() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const pageSize = isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
   const [viewMode, setViewMode] = useState<"current" | "historic">("current");
   const [currentPage, setCurrentPage] = useState(1);
   const [q, setQ] = useState("");
@@ -94,11 +107,11 @@ function AdminSolicitudes() {
   const [customPauseDetail, setCustomPauseDetail] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const loadCurrentMonth = async (page: number) => {
+  const loadCurrentMonth = async (page: number, pageSize: number) => {
     try {
       const { startISO, endISO } = getMonthRange();
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from("solicitudes")
@@ -125,15 +138,16 @@ function AdminSolicitudes() {
         totalRecords: count ?? 0,
       };
     } catch (error) {
+      if (isOutOfRangeError(error)) return null;
       toast.error("Error al cargar solicitudes");
       return { data: [], totalRecords: 0 };
     }
   };
 
-  const loadHistoric = async (page: number) => {
+  const loadHistoric = async (page: number, pageSize: number) => {
     try {
-      const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from("solicitudes")
@@ -158,6 +172,7 @@ function AdminSolicitudes() {
         totalRecords: count ?? 0,
       };
     } catch (error) {
+      if (isOutOfRangeError(error)) return null;
       toast.error("Error al cargar histórico");
       return { data: [], totalRecords: 0 };
     }
@@ -234,24 +249,45 @@ function AdminSolicitudes() {
   }, [user?.id]);
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  useEffect(() => {
+    let cancelled = false;
     const loadPage = async () => {
       setLoadingPage(true);
-      if (viewMode === "current") {
-        const { data, totalRecords } = await loadCurrentMonth(currentPage);
-        const enriched = await enrichRows(data);
-        setItemsCurrentMonth(enriched);
-        setTotalCurrentMonth(totalRecords);
-      } else {
-        const { data, totalRecords } = await loadHistoric(currentPage);
-        const enriched = await enrichRows(data);
-        setItemsHistoric(enriched);
-        setTotalHistoric(totalRecords);
+      try {
+        if (viewMode === "current") {
+          const result = await loadCurrentMonth(currentPage, pageSize);
+          if (!result) {
+            if (!cancelled) setCurrentPage(1);
+            return;
+          }
+          const enriched = await enrichRows(result.data);
+          if (cancelled) return;
+          setItemsCurrentMonth(enriched);
+          setTotalCurrentMonth(result.totalRecords);
+        } else {
+          const result = await loadHistoric(currentPage, pageSize);
+          if (!result) {
+            if (!cancelled) setCurrentPage(1);
+            return;
+          }
+          const enriched = await enrichRows(result.data);
+          if (cancelled) return;
+          setItemsHistoric(enriched);
+          setTotalHistoric(result.totalRecords);
+        }
+      } finally {
+        if (!cancelled) setLoadingPage(false);
       }
-      setLoadingPage(false);
     };
 
-    loadPage();
-  }, [viewMode, currentPage, filterEstado, onlyMine, user?.id, refreshTrigger]);
+    void loadPage();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, currentPage, filterEstado, onlyMine, user?.id, refreshTrigger, pageSize]);
 
   const displayData = useMemo(() => {
     const source = viewMode === "current" ? itemsCurrentMonth : itemsHistoric;
@@ -270,7 +306,15 @@ function AdminSolicitudes() {
   }, [itemsCurrentMonth, itemsHistoric, q, viewMode]);
 
   const totalRecords = viewMode === "current" ? totalCurrentMonth : totalHistoric;
-  const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(totalRecords / pageSize);
+  const paginationItems: Array<number | "start-ellipsis" | "end-ellipsis"> =
+    totalPages <= 7
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : currentPage <= 4
+        ? [1, 2, 3, 4, 5, "end-ellipsis", totalPages]
+        : currentPage >= totalPages - 3
+          ? [1, "start-ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+          : [1, "start-ellipsis", currentPage - 1, currentPage, currentPage + 1, "end-ellipsis", totalPages];
 
   const changeEstado = async (id: string, estado: Row["estado"], selectedCollaboratorId: string | null = null, resolucion: string | null = null) => {
     const { error } = await supabase
@@ -475,7 +519,13 @@ function AdminSolicitudes() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Buscar por motivo, empleado o área..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
           </div>
-          <Select value={filterEstado} onValueChange={setFilterEstado}>
+          <Select
+            value={filterEstado}
+            onValueChange={(value) => {
+              setCurrentPage(1);
+              setFilterEstado(value);
+            }}
+          >
             <SelectTrigger className="sm:w-48">
               <SelectValue />
             </SelectTrigger>
@@ -489,7 +539,14 @@ function AdminSolicitudes() {
               <SelectItem value="visto">Visto</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="button" variant={onlyMine ? "default" : "outline"} onClick={() => setOnlyMine((value) => !value)}>
+          <Button
+            type="button"
+            variant={onlyMine ? "default" : "outline"}
+            onClick={() => {
+              setCurrentPage(1);
+              setOnlyMine((value) => !value);
+            }}
+          >
             Mis solicitudes
           </Button>
         </div>
@@ -619,11 +676,11 @@ function AdminSolicitudes() {
 
             {/* PAGINATION */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages} ({totalRecords} registros)
+                  Página {currentPage} de {totalPages} ({totalRecords} registros; {pageSize} por página)
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -632,20 +689,27 @@ function AdminSolicitudes() {
                   >
                     Anterior
                   </Button>
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = currentPage > 3 ? currentPage - 2 + i : i + 1;
-                    if (pageNum > totalPages) return null;
-                    return (
+                  {paginationItems.map((item, index) =>
+                    typeof item === "number" ? (
                       <Button
-                        key={pageNum}
+                        key={item}
                         size="sm"
-                        variant={pageNum === currentPage ? "default" : "outline"}
-                        onClick={() => setCurrentPage(pageNum)}
+                        variant={item === currentPage ? "default" : "outline"}
+                        aria-current={item === currentPage ? "page" : undefined}
+                        onClick={() => setCurrentPage(item)}
                       >
-                        {pageNum}
+                        {item}
                       </Button>
-                    );
-                  })}
+                    ) : (
+                      <span
+                        key={`${item}-${index}`}
+                        aria-hidden="true"
+                        className="flex h-9 w-9 items-center justify-center text-muted-foreground"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </span>
+                    ),
+                  )}
                   <Button
                     size="sm"
                     variant="outline"

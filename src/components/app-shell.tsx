@@ -1,5 +1,19 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, PlusCircle, ClipboardList, LogOut, ShieldCheck, BarChart3, Sun, Moon, Menu, X, Bell, Users, UserCircle } from "lucide-react";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  ClipboardList,
+  LogOut,
+  ShieldCheck,
+  BarChart3,
+  Sun,
+  Moon,
+  Menu,
+  X,
+  Bell,
+  Users,
+  UserCircle,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -49,7 +63,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const playNotificationSound = () => {
     if (typeof window === "undefined") return;
-    const AudioContextClass = window.AudioContext ||
+    const AudioContextClass =
+      window.AudioContext ||
       (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context = audioContext.current ?? new AudioContextClass();
@@ -156,14 +171,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <div className="app-shell-nav-label px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {isAdmin ? (
-          <span className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5" /> Administración</span>
+          <span className="flex items-center gap-2">
+            <ShieldCheck className="h-3.5 w-3.5" /> Administración
+          </span>
         ) : (
           "Menú"
         )}
       </div>
       {links.map((l) => {
         const Icon = l.icon;
-        const active = pathname === l.to || (l.to !== "/admin" && l.to !== "/perfil" && pathname.startsWith(l.to));
+        const active =
+          pathname === l.to ||
+          (l.to !== "/admin" && l.to !== "/perfil" && pathname.startsWith(l.to));
         return (
           <Link
             key={l.to}
@@ -221,7 +240,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           Tema {theme === "dark" ? "claro" : "oscuro"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-destructive focus:text-destructive"
+        >
           <LogOut className="mr-2 h-4 w-4" /> Cerrar sesión
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -256,15 +278,24 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="h-9 w-9 rounded-md object-cover"
             />
           </div>
-          <div className="leading-tight">
-            <div className="text-sm font-bold text-foreground">Área de Sistemas</div>
-            <div className="text-[11px] text-muted-foreground">Ministerio de Producción</div>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-bold tracking-tight text-foreground">SIG</span>
+            <div className="h-8 border-l border-border" />
+            <div className="leading-tight">
+              <div className="text-sm font-bold text-foreground">Área de Sistemas</div>
+              <div className="text-[11px] text-muted-foreground">Ministerio de Producción</div>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {isAdmin && pending > 0 && (
-            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="app-shell-bell-button relative rounded-md p-1 hover:bg-accent">
+            <button
+              type="button"
+              aria-label="Revisar solicitudes pendientes"
+              onClick={reviewNotifications}
+              className="app-shell-bell-button relative rounded-md p-1 hover:bg-accent"
+            >
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                 {pending}
@@ -277,7 +308,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile header */}
       <header className="app-shell-header fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur lg:hidden">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="app-shell-favicon flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <img
               src="/favicon.png"
@@ -285,14 +316,27 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="h-8 w-8 rounded-sm object-cover"
             />
           </div>
-          <div className="leading-tight">
-            <div className="text-[11px] font-semibold text-foreground">Área de Sistemas</div>
-            <div className="text-[10px] text-muted-foreground">Min. Producción</div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-xl font-bold tracking-tight text-foreground">SIG</span>
+            <div className="h-7 border-l border-border" />
+            <div className="min-w-0 leading-tight">
+              <div className="truncate text-[11px] font-semibold text-foreground">
+                Área de Sistemas
+              </div>
+              <div className="truncate text-[10px] text-muted-foreground">
+                Ministerio de Producción
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {isAdmin && pending > 0 && (
-            <button type="button" aria-label="Revisar solicitudes pendientes" onClick={reviewNotifications} className="app-shell-bell-button relative mr-1 rounded-md p-1 hover:bg-accent">
+            <button
+              type="button"
+              aria-label="Revisar solicitudes pendientes"
+              onClick={reviewNotifications}
+              className="app-shell-bell-button relative mr-1 rounded-md p-1 hover:bg-accent"
+            >
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                 {pending}

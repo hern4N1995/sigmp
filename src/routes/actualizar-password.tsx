@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/actualizar-password")({
-  head: () => ({ meta: [{ title: "Actualizar contraseña - Soporte Sistemas" }] }),
+  head: () => ({ meta: [{ title: "Actualizar contraseña - SIG" }] }),
   ssr: false,
   component: UpdatePasswordPage,
 });

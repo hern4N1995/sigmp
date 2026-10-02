@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { UserCircle, ShieldCheck, User as UserIcon } from "lucide-react";
@@ -12,7 +13,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
-      { title: "Mi perfil - Soporte Sistemas" },
+      { title: "Mi perfil - SIG" },
       { name: "description", content: "Consulta los datos de tu cuenta en el portal de soporte." },
     ],
   }),
@@ -30,6 +31,7 @@ type Profile = {
 };
 
 function MiPerfil() {
+  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -37,10 +39,10 @@ function MiPerfil() {
     if (!user) return;
     const loadProfile = async () => {
       const { data, error } = await supabase
-      .from("profiles")
-      .select("nombre, apellido, email, dni, area, area_id")
-      .eq("id", user.id)
-      .maybeSingle();
+        .from("profiles")
+        .select("nombre, apellido, email, dni, area, area_id")
+        .eq("id", user.id)
+        .maybeSingle();
       if (error) {
         toast.error(error.message);
         return;
@@ -71,19 +73,28 @@ function MiPerfil() {
         </div>
 
         <Card className="p-6">
-          <div className="mb-5 flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-primary">
-              <UserIcon className="h-8 w-8" />
-            </div>
-            <div>
-              <div className="text-lg font-semibold">
-                {profile?.nombre ?? ""} {profile?.apellido ?? ""}
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <UserIcon className="h-8 w-8" />
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                {isAdmin ? "Administrador" : "Empleado"}
+              <div>
+                <div className="text-lg font-semibold">
+                  {profile?.nombre ?? ""} {profile?.apellido ?? ""}
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {isAdmin ? "Administrador" : "Empleado"}
+                </div>
               </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate({ to: "/completar-perfil" })}
+            >
+              Editar perfil
+            </Button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

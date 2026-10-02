@@ -22,8 +22,11 @@ import {
 } from "@/components/ui/select";
 import { Users, Pencil, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Role = "administrador" | "empleado";
+const MOBILE_PAGE_SIZE = 3;
+const DESKTOP_PAGE_SIZE = 7;
 
 type Row = {
   id: string;
@@ -40,7 +43,7 @@ type Row = {
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({
   head: () => ({
     meta: [
-      { title: "Usuarios - Administración | Soporte Sistemas" },
+      { title: "Usuarios - SIG" },
       { name: "description", content: "Administración de usuarios del portal de soporte." },
     ],
   }),
@@ -48,18 +51,28 @@ export const Route = createFileRoute("/_authenticated/admin/usuarios")({
 });
 
 function UsuariosPage() {
+  const isMobile = useIsMobile();
   const [rows, setRows] = useState<Row[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Row | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<Row | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ nombre: "", apellido: "", area: "", role: "empleado" as Role });
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    area: "",
+    role: "empleado" as Role,
+  });
 
   const load = async () => {
     setLoading(true);
     const [{ data: profiles }, { data: roles }, { data: areas }] = await Promise.all([
-      supabase.from("profiles").select("id, nombre, apellido, email, area, area_id, created_at").order("created_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("id, nombre, apellido, email, area, area_id, created_at")
+        .order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("areas").select("id, nombre_corto"),
     ]);
@@ -79,9 +92,26 @@ function UsuariosPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [isMobile]);
+
+  const pageSize = isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
+  const totalPages = Math.ceil(rows.length / pageSize);
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, Math.max(1, totalPages)));
+  }, [totalPages]);
+
   const openEdit = (r: Row) => {
     setEditing(r);
-    setForm({ nombre: r.nombre ?? "", apellido: r.apellido ?? "", area: r.area ?? "", role: r.role });
+    setForm({
+      nombre: r.nombre ?? "",
+      apellido: r.apellido ?? "",
+      area: r.area ?? "",
+      role: r.role,
+    });
   };
 
   const save = async () => {
@@ -98,7 +128,9 @@ function UsuariosPage() {
     }
     if (form.role !== editing.role) {
       await supabase.from("user_roles").delete().eq("user_id", editing.id);
-      const { error: rErr } = await supabase.from("user_roles").insert({ user_id: editing.id, role: form.role });
+      const { error: rErr } = await supabase
+        .from("user_roles")
+        .insert({ user_id: editing.id, role: form.role });
       if (rErr) {
         toast.error(rErr.message);
         setSaving(false);
@@ -133,12 +165,14 @@ function UsuariosPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Usuarios</h1>
-          <p className="text-sm text-muted-foreground">Administrá los usuarios y roles del sistema.</p>
+          <p className="text-sm text-muted-foreground">
+            Administrá los usuarios y roles del sistema.
+          </p>
         </div>
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
@@ -165,7 +199,7 @@ function UsuariosPage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((r) => (
+                pageRows.map((r) => (
                   <tr key={r.id} className="border-t border-border">
                     <td className="px-4 py-3">{r.nombre ?? "—"}</td>
                     <td className="px-4 py-3">{r.apellido ?? "—"}</td>
@@ -213,6 +247,112 @@ function UsuariosPage() {
             </tbody>
           </table>
         </div>
+        <div className="grid gap-3 p-3 md:hidden">
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">Sin usuarios.</p>
+          ) : (
+            pageRows.map((r) => (
+              <div key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="break-words font-semibold">
+                      {[r.nombre, r.apellido].filter(Boolean).join(" ") || "Sin nombre"}
+                    </h2>
+                    <p className="break-all text-sm text-muted-foreground">{r.email ?? "—"}</p>
+                  </div>
+                  <span
+                    className={
+                      r.role === "administrador"
+                        ? "shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                        : "shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground/80"
+                    }
+                  >
+                    {r.role === "administrador" ? "Administrador" : "Empleado"}
+                  </span>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Área</dt>
+                    <dd className="break-words">{r.area_nombre_corto ?? r.area ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Creado</dt>
+                    <dd>{new Date(r.created_at).toLocaleDateString()}</dd>
+                  </div>
+                </dl>
+                <div className="mt-4 flex gap-2 border-t border-border pt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => openEdit(r)}
+                    aria-label={`Editar usuario ${r.email ?? ""}`}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setPendingDeletion(r)}
+                    aria-label={`Eliminar usuario ${r.email ?? ""}`}
+                  >
+                    <X className="mr-2 h-4 w-4 text-destructive" />
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {!loading && totalPages > 1 && (
+          <div className="flex flex-col gap-3 border-t border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-center text-sm text-muted-foreground sm:text-left">
+              Mostrando {(currentPage - 1) * pageSize + 1}-
+              {Math.min(currentPage * pageSize, rows.length)} de {rows.length} usuarios
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, index) =>
+                currentPage > 3 ? currentPage - 2 + index : index + 1,
+              )
+                .filter((page) => page <= totalPages)
+                .map((page) => (
+                  <Button
+                    key={page}
+                    type="button"
+                    size="sm"
+                    variant={page === currentPage ? "default" : "outline"}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
@@ -223,19 +363,31 @@ function UsuariosPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Nombre</Label>
-              <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+              <Input
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Apellido</Label>
-              <Input value={form.apellido} onChange={(e) => setForm({ ...form, apellido: e.target.value })} />
+              <Input
+                value={form.apellido}
+                onChange={(e) => setForm({ ...form, apellido: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Área</Label>
-              <Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
+              <Input
+                value={form.area}
+                onChange={(e) => setForm({ ...form, area: e.target.value })}
+              />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Rol</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
+              <Select
+                value={form.role}
+                onValueChange={(v) => setForm({ ...form, role: v as Role })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -264,7 +416,8 @@ function UsuariosPage() {
             <DialogTitle>Eliminar usuario</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            ¿Eliminar a {pendingDeletion?.nombre} {pendingDeletion?.apellido} ({pendingDeletion?.email})? Esta acción no se puede deshacer.
+            ¿Eliminar a {pendingDeletion?.nombre} {pendingDeletion?.apellido} (
+            {pendingDeletion?.email})? Esta acción no se puede deshacer.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingDeletion(null)} disabled={deleting}>

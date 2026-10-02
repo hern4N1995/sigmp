@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/recuperar-password")({
-  head: () => ({ meta: [{ title: "Recuperar contraseña - Soporte Sistemas" }] }),
+  head: () => ({ meta: [{ title: "Recuperar contraseña - SIG" }] }),
   ssr: false,
   component: RecoverPasswordPage,
 });
