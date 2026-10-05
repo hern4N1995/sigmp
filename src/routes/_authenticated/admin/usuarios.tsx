@@ -20,13 +20,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Pencil, Loader2, X } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown, Users, Pencil, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type Role = "administrador" | "empleado";
+type Area = { id: string; nombre_completo: string; nombre_corto: string };
 const MOBILE_PAGE_SIZE = 3;
 const DESKTOP_PAGE_SIZE = 7;
+
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 type Row = {
   id: string;
@@ -53,6 +69,9 @@ export const Route = createFileRoute("/_authenticated/admin/usuarios")({
 function UsuariosPage() {
   const isMobile = useIsMobile();
   const [rows, setRows] = useState<Row[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [areasLoadError, setAreasLoadError] = useState<string | null>(null);
+  const [areaOpen, setAreaOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -62,23 +81,27 @@ function UsuariosPage() {
   const [form, setForm] = useState({
     nombre: "",
     apellido: "",
-    area: "",
+    areaId: "none",
     role: "empleado" as Role,
   });
 
   const load = async () => {
     setLoading(true);
-    const [{ data: profiles }, { data: roles }, { data: areas }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, nombre, apellido, email, area, area_id, created_at")
-        .order("created_at", { ascending: false }),
-      supabase.from("user_roles").select("user_id, role"),
-      supabase.from("areas").select("id, nombre_corto"),
-    ]);
+    const [{ data: profiles }, { data: roles }, { data: areaOptions, error: areaError }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, nombre, apellido, email, area, area_id, created_at")
+          .order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+        supabase.from("areas").select("id, nombre_completo, nombre_corto").order("nombre_corto"),
+      ]);
+    setAreas(areaOptions ?? []);
+    setAreasLoadError(areaError?.message ?? null);
+    if (areaError) toast.error(`No se pudieron cargar las áreas: ${areaError.message}`);
     const rolesMap = new Map<string, Role>();
     (roles ?? []).forEach((r: any) => rolesMap.set(r.user_id, r.role as Role));
-    const areasMap = new Map((areas ?? []).map((area) => [area.id, area.nombre_corto]));
+    const areasMap = new Map((areaOptions ?? []).map((area) => [area.id, area.nombre_corto]));
     const merged: Row[] = (profiles ?? []).map((p: any) => ({
       ...p,
       area_nombre_corto: areasMap.get(p.area_id) ?? null,
@@ -109,17 +132,30 @@ function UsuariosPage() {
     setForm({
       nombre: r.nombre ?? "",
       apellido: r.apellido ?? "",
-      area: r.area ?? "",
+      areaId:
+        areas.find((area) => area.id === r.area_id)?.id ??
+        areas.find((area) => area.nombre_completo === r.area || area.nombre_corto === r.area)?.id ??
+        "none",
       role: r.role,
     });
   };
 
   const save = async () => {
     if (!editing) return;
+    if (areasLoadError) {
+      toast.error("No se pueden guardar los cambios porque no se pudieron cargar las áreas.");
+      return;
+    }
+    const selectedArea = areas.find((area) => area.id === form.areaId);
     setSaving(true);
     const { error: pErr } = await supabase
       .from("profiles")
-      .update({ nombre: form.nombre, apellido: form.apellido, area: form.area })
+      .update({
+        nombre: form.nombre,
+        apellido: form.apellido,
+        area_id: selectedArea?.id ?? null,
+        area: selectedArea?.nombre_corto ?? null,
+      })
       .eq("id", editing.id);
     if (pErr) {
       toast.error(pErr.message);
@@ -376,11 +412,85 @@ function UsuariosPage() {
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label>Área</Label>
-              <Input
-                value={form.area}
-                onChange={(e) => setForm({ ...form, area: e.target.value })}
-              />
+              <Label htmlFor="usuario-area">Área</Label>
+              <Popover open={areaOpen} onOpenChange={setAreaOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="usuario-area"
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={areaOpen}
+                    disabled={Boolean(areasLoadError)}
+                    className="w-full justify-between font-normal"
+                  >
+                    {areas.find((area) => area.id === form.areaId)?.nombre_corto ??
+                      (form.areaId === "none" ? "Sin área" : "Seleccioná un área")}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  avoidCollisions={false}
+                  className="w-[var(--radix-popover-trigger-width)] p-0"
+                  align="start"
+                >
+                  <Command
+                    filter={(value, search) => {
+                      if (value === "none") {
+                        return normalize("Sin área").includes(normalize(search)) ? 1 : 0;
+                      }
+                      const area = areas.find((option) => option.id === value);
+                      return area &&
+                        normalize(`${area.nombre_corto} ${area.nombre_completo}`).includes(
+                          normalize(search),
+                        )
+                        ? 1
+                        : 0;
+                    }}
+                  >
+                    <CommandInput placeholder="Buscar área..." />
+                    <CommandList className="max-h-60">
+                      <CommandEmpty>No se encontraron áreas.</CommandEmpty>
+                      <CommandItem
+                        value="none"
+                        onSelect={() => {
+                          setForm({ ...form, areaId: "none" });
+                          setAreaOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={
+                            form.areaId === "none"
+                              ? "mr-2 h-4 w-4 opacity-100"
+                              : "mr-2 h-4 w-4 opacity-0"
+                          }
+                        />
+                        Sin área
+                      </CommandItem>
+                      {areas.map((area) => (
+                        <CommandItem
+                          key={area.id}
+                          value={area.id}
+                          onSelect={() => {
+                            setForm({ ...form, areaId: area.id });
+                            setAreaOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={
+                              form.areaId === area.id
+                                ? "mr-2 h-4 w-4 opacity-100"
+                                : "mr-2 h-4 w-4 opacity-0"
+                            }
+                          />
+                          {area.nombre_corto}
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Rol</Label>

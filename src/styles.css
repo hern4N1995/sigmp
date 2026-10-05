@@ -5,6 +5,50 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.app-startup-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  place-items: center;
+  background: linear-gradient(145deg, #08742f 0%, #00902f 55%, #087b37 100%);
+  color: #fff;
+  text-align: center;
+}
+
+.app-startup-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+.app-startup-title {
+  font-size: clamp(1.4rem, 6vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.app-startup-subtitle {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.app-startup-brand img {
+  width: 6rem;
+  height: auto;
+  max-height: 8rem;
+  margin-top: 1.75rem;
+  object-fit: contain;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .app-startup-splash {
+    display: grid;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -293,7 +337,10 @@
   border-color: rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 255, 255, 0.8);
-  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
 .dark .app-shell-social-link:hover {

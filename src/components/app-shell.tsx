@@ -60,8 +60,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const notificationActive = useRef(false);
   const repeatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioContext = useRef<AudioContext | null>(null);
+  const alarmAudio = useRef<HTMLAudioElement | null>(null);
+  const alarmSource = useRef<MediaElementAudioSourceNode | null>(null);
 
-  const playNotificationSound = () => {
+  const playNotificationSound = async () => {
     if (typeof window === "undefined") return;
     const AudioContextClass =
       window.AudioContext ||
@@ -69,27 +71,33 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!AudioContextClass) return;
     const context = audioContext.current ?? new AudioContextClass();
     audioContext.current = context;
-    if (context.state === "suspended") void context.resume();
-
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const now = context.currentTime;
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(880, now);
-    oscillator.frequency.setValueAtTime(660, now + 0.12);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.3);
+    const audio = alarmAudio.current ?? new Audio("/alarm.mp3");
+    alarmAudio.current = audio;
+    if (!alarmSource.current) {
+      const source = context.createMediaElementSource(audio);
+      const gain = context.createGain();
+      gain.gain.value = 1.15;
+      source.connect(gain);
+      gain.connect(context.destination);
+      alarmSource.current = source;
+    }
+    try {
+      if (context.state === "suspended") await context.resume();
+      audio.currentTime = 0;
+      await audio.play();
+    } catch (error) {
+      console.error("No se pudo reproducir la alarma de nuevas solicitudes.", error);
+    }
   };
 
   const stopNotificationSound = () => {
     notificationActive.current = false;
     if (repeatTimer.current) clearTimeout(repeatTimer.current);
     repeatTimer.current = null;
+    if (alarmAudio.current) {
+      alarmAudio.current.pause();
+      alarmAudio.current.currentTime = 0;
+    }
   };
 
   const startNotificationSound = () => {
