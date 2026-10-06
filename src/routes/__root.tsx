@@ -272,9 +272,11 @@ function RootComponent() {
       {showStartupSplash && (
         <div className="app-startup-splash" aria-hidden="true">
           <div className="app-startup-brand">
-            <div className="app-startup-title">SIG | Área de Sistemas</div>
-            <div className="app-startup-subtitle">Ministerio de Producción</div>
             <img src="/escudo.png" alt="" />
+            <div className="app-startup-title">SIG | Área de Sistemas</div>
+            <div className="app-startup-subtitle">
+              Sistema Interno de Gestión del Ministerio de Producción
+            </div>
           </div>
         </div>
       )}
