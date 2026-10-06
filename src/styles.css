@@ -204,11 +204,11 @@
 }
 
 .light .app-shell-favicon {
-  background: rgba(151, 203, 80, 0.55);
+  background: #1f8f37;
 }
 
-.dark .app-shell-favicon {
-  background: rgba(42, 132, 69, 0.5);
+:root:not(.light) .app-shell-favicon {
+  background-color: #0b2c1c;
 }
 
 .dark .app-shell-header {

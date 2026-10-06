@@ -85,9 +85,9 @@ function AuthPage() {
         <div className="flex w-full items-center gap-3">
           <div className="app-shell-favicon flex h-10 w-10 items-center justify-center rounded-lg bg-primary p-1 shadow-sm shadow-primary/20 lg:h-11 lg:w-11">
             <img
-              src="/favicon.png"
+              src="/escudo.png"
               alt="Ministerio de Producción"
-              className="h-full w-full rounded-md object-cover"
+              className="h-full w-full rounded-md object-contain"
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">

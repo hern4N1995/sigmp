@@ -281,9 +281,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mr-auto flex items-center gap-3">
           <div className="app-shell-favicon flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
             <img
-              src="/favicon.png"
+              src="/escudo.png"
               alt="Ministerio de Producción"
-              className="h-9 w-9 rounded-md object-cover"
+              className="h-9 w-9 rounded-md object-contain"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -319,9 +319,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 items-center gap-2">
           <div className="app-shell-favicon flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <img
-              src="/favicon.png"
+              src="/escudo.png"
               alt="Ministerio de Producción"
-              className="h-8 w-8 rounded-sm object-cover"
+              className="h-8 w-8 rounded-sm object-contain"
             />
           </div>
           <div className="flex min-w-0 items-center gap-2">

@@ -100,9 +100,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "32x32" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "icon", href: "/escudo.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/logo.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,
@@ -275,7 +274,7 @@ function RootComponent() {
           <div className="app-startup-brand">
             <div className="app-startup-title">SIG | Área de Sistemas</div>
             <div className="app-startup-subtitle">Ministerio de Producción</div>
-            <img src="/img/logo.png" alt="" />
+            <img src="/escudo.png" alt="" />
           </div>
         </div>
       )}
