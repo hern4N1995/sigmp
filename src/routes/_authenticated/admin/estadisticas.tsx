@@ -370,8 +370,9 @@ function Estadisticas() {
                   <LabelList
                     dataKey="cantidad"
                     position="top"
-                    fill="var(--foreground)"
-                    fontSize={12}
+                    fill="var(--chart-value-foreground)"
+                    fontSize={14}
+                    style={{ fontWeight: 700 }}
                   />
                 </Line>
               </LineChart>
@@ -434,8 +435,9 @@ function Estadisticas() {
                   <LabelList
                     dataKey="cantidad"
                     position="right"
-                    fill="var(--foreground)"
-                    fontSize={12}
+                    fill="var(--chart-value-foreground)"
+                    fontSize={14}
+                    style={{ fontWeight: 700 }}
                   />
                 </Bar>
               </BarChart>

@@ -129,6 +129,7 @@
   --chart-tooltip-border: oklch(0.36 0.08 155);
   --chart-tooltip-shadow: 0 8px 20px rgba(0, 0, 0, 0.42);
   --chart-cursor-background: rgba(0, 82, 42, 0.48);
+  --chart-value-foreground: var(--foreground);
 }
 
 /* Optional light mode */
@@ -165,6 +166,7 @@
   --chart-tooltip-border: #d9e4dc;
   --chart-tooltip-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
   --chart-cursor-background: rgba(204, 204, 204, 0.55);
+  --chart-value-foreground: #000;
 }
 
 .light .app-shell-header,
@@ -393,6 +395,12 @@
 .light .app-chart-tooltip .recharts-tooltip-item,
 .light .app-chart-tooltip .recharts-tooltip-item-list {
   color: #111111 !important;
+}
+
+.light .recharts-cartesian-grid line {
+  stroke: #aeb1af;
+  stroke-dasharray: 2 3;
+  stroke-width: 0.5px;
 }
 
 :root:not(.light) .app-chart-tooltip .recharts-default-tooltip {
