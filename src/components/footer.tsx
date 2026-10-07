@@ -8,11 +8,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function Footer({ fixed = true }: { fixed?: boolean }) {
+export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className={`app-shell-footer ${fixed ? "fixed inset-x-0 bottom-0 z-40" : "relative"} w-full border-t border-border bg-card/85 shadow-[0_-10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm`}>
+    <footer className="app-shell-footer relative z-40 w-full border-t border-border bg-card/85 shadow-[0_-10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
       <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
         <div className="grid items-center gap-3 sm:gap-5 md:grid-cols-[1fr_auto_1fr]">
           <div className="app-shell-footer-links flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground sm:gap-5 md:justify-start">
@@ -32,13 +32,13 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
                 <div className="space-y-4 text-sm leading-7 text-muted-foreground">
                   <p>
                     El Ministerio de Producción de Corrientes y el Área de Sistemas gestionan la
-                    información necesaria para atender solicitudes internas y mantener la continuidad
-                    operativa de los servicios del organismo.
+                    información necesaria para atender solicitudes internas y mantener la
+                    continuidad operativa de los servicios del organismo.
                   </p>
                   <p>
                     Los datos personales se utilizan exclusivamente para fines institucionales,
-                    administración de usuarios, seguimiento de requerimientos y mejora de los procesos
-                    digitales.
+                    administración de usuarios, seguimiento de requerimientos y mejora de los
+                    procesos digitales.
                   </p>
                   <p>
                     El acceso a la plataforma está restringido a personal autorizado y se aplican
@@ -68,13 +68,13 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
                     correcta utilización de la información gestionada en la plataforma.
                   </p>
                   <p>
-                    Los usuarios son responsables del contenido ingresado a las solicitudes, así como
-                    de la exactitud y veracidad de la información remitida.
+                    Los usuarios son responsables del contenido ingresado a las solicitudes, así
+                    como de la exactitud y veracidad de la información remitida.
                   </p>
                   <p>
-                    El Ministerio de Producción puede modificar, actualizar o mejorar los servicios del
-                    portal para garantizar su correcto funcionamiento y la continuidad de los procesos
-                    institucionales.
+                    El Ministerio de Producción puede modificar, actualizar o mejorar los servicios
+                    del portal para garantizar su correcto funcionamiento y la continuidad de los
+                    procesos institucionales.
                   </p>
                 </div>
               </DialogContent>
@@ -88,7 +88,7 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
             <p className="text-xs">Todos los derechos reservados</p>
             <p className="mt-1 font-medium text-foreground sm:mt-2">Área de Sistemas</p>
             <p>
-              Desarrollo técnico: {" "}
+              Desarrollo técnico:{" "}
               <a
                 href="https://www.linkedin.com/in/hernanalegre/"
                 target="_blank"
@@ -108,7 +108,7 @@ export function Footer({ fixed = true }: { fixed?: boolean }) {
               </a>
             </p>
             <p>
-              Dirección del proyecto: {" "}
+              Dirección del proyecto:{" "}
               <a
                 href="https://www.linkedin.com/in/ester-kroslak/"
                 target="_blank"

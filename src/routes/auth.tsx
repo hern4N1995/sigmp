@@ -245,7 +245,7 @@ function AuthPage() {
           </Card>
         </div>
       </main>
-      <Footer fixed={false} />
+      <Footer />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
@@ -28,7 +28,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Users, Pencil, Loader2, X } from "lucide-react";
+import { Check, ChevronsUpDown, Users, Pencil, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -44,6 +44,15 @@ function normalize(value: string) {
     .toLowerCase();
 }
 
+function getLocalDateKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type Row = {
   id: string;
   nombre: string | null;
@@ -52,6 +61,7 @@ type Row = {
   area: string | null;
   area_id: string | null;
   area_nombre_corto: string | null;
+  area_nombre_completo: string | null;
   created_at: string;
   role: Role;
 };
@@ -73,7 +83,11 @@ function UsuariosPage() {
   const [areasLoadError, setAreasLoadError] = useState<string | null>(null);
   const [areaOpen, setAreaOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const editDialogContentRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<Row | null>(null);
@@ -100,11 +114,12 @@ function UsuariosPage() {
     setAreasLoadError(areaError?.message ?? null);
     if (areaError) toast.error(`No se pudieron cargar las áreas: ${areaError.message}`);
     const rolesMap = new Map<string, Role>();
-    (roles ?? []).forEach((r: any) => rolesMap.set(r.user_id, r.role as Role));
-    const areasMap = new Map((areaOptions ?? []).map((area) => [area.id, area.nombre_corto]));
-    const merged: Row[] = (profiles ?? []).map((p: any) => ({
+    (roles ?? []).forEach((r) => rolesMap.set(r.user_id, r.role as Role));
+    const areasMap = new Map((areaOptions ?? []).map((area) => [area.id, area]));
+    const merged: Row[] = (profiles ?? []).map((p) => ({
       ...p,
-      area_nombre_corto: areasMap.get(p.area_id) ?? null,
+      area_nombre_corto: areasMap.get(p.area_id)?.nombre_corto ?? null,
+      area_nombre_completo: areasMap.get(p.area_id)?.nombre_completo ?? null,
       role: rolesMap.get(p.id) ?? "empleado",
     }));
     setRows(merged);
@@ -119,9 +134,37 @@ function UsuariosPage() {
     setCurrentPage(1);
   }, [isMobile]);
 
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = normalize(search.trim());
+    return rows.filter((row) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        normalize(
+          [
+            row.nombre,
+            row.apellido,
+            row.email,
+            row.area,
+            row.area_nombre_corto,
+            row.area_nombre_completo,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        ).includes(normalizedSearch);
+      const createdDate = getLocalDateKey(row.created_at);
+      const matchesFrom = !createdFrom || Boolean(createdDate && createdDate >= createdFrom);
+      const matchesTo = !createdTo || Boolean(createdDate && createdDate <= createdTo);
+      return matchesSearch && matchesFrom && matchesTo;
+    });
+  }, [rows, search, createdFrom, createdTo]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, createdFrom, createdTo]);
+
   const pageSize = isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
-  const totalPages = Math.ceil(rows.length / pageSize);
-  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(filteredRows.length / pageSize);
+  const pageRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, Math.max(1, totalPages)));
@@ -207,6 +250,58 @@ function UsuariosPage() {
         </div>
       </div>
 
+      <Card className="mb-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto] lg:items-end">
+          <div className="space-y-1.5">
+            <Label htmlFor="usuarios-search">Buscar usuarios</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="usuarios-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nombre, apellido, email o área..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="usuarios-created-from">Creado desde</Label>
+            <Input
+              id="usuarios-created-from"
+              type="date"
+              value={createdFrom}
+              max={createdTo || undefined}
+              onChange={(event) => setCreatedFrom(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="usuarios-created-to">Creado hasta</Label>
+            <Input
+              id="usuarios-created-to"
+              type="date"
+              value={createdTo}
+              min={createdFrom || undefined}
+              onChange={(event) => setCreatedTo(event.target.value)}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:col-span-2 lg:col-span-1"
+            onClick={() => {
+              setSearch("");
+              setCreatedFrom("");
+              setCreatedTo("");
+            }}
+            disabled={!search && !createdFrom && !createdTo}
+          >
+            <X className="h-4 w-4" />
+            Limpiar
+          </Button>
+        </div>
+      </Card>
+
       <Card className="overflow-hidden">
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
@@ -228,10 +323,10 @@ function UsuariosPage() {
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </td>
                 </tr>
-              ) : rows.length === 0 ? (
+              ) : filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                    Sin usuarios.
+                    {rows.length === 0 ? "Sin usuarios." : "No hay usuarios para estos filtros."}
                   </td>
                 </tr>
               ) : (
@@ -288,8 +383,10 @@ function UsuariosPage() {
             <div className="py-10 text-center text-muted-foreground">
               <Loader2 className="mx-auto h-5 w-5 animate-spin" />
             </div>
-          ) : rows.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Sin usuarios.</p>
+          ) : filteredRows.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {rows.length === 0 ? "Sin usuarios." : "No hay usuarios para estos filtros."}
+            </p>
           ) : (
             pageRows.map((r) => (
               <div key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-4">
@@ -350,7 +447,8 @@ function UsuariosPage() {
           <div className="flex flex-col gap-3 border-t border-border p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-center text-sm text-muted-foreground sm:text-left">
               Mostrando {(currentPage - 1) * pageSize + 1}-
-              {Math.min(currentPage * pageSize, rows.length)} de {rows.length} usuarios
+              {Math.min(currentPage * pageSize, filteredRows.length)} de {filteredRows.length}{" "}
+              usuarios
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <Button
@@ -392,7 +490,7 @@ function UsuariosPage() {
       </Card>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent ref={editDialogContentRef}>
           <DialogHeader>
             <DialogTitle>Editar usuario</DialogTitle>
           </DialogHeader>
@@ -432,6 +530,7 @@ function UsuariosPage() {
                 <PopoverContent
                   side="bottom"
                   avoidCollisions={false}
+                  portalContainer={editDialogContentRef.current}
                   className="w-[var(--radix-popover-trigger-width)] p-0"
                   align="start"
                 >

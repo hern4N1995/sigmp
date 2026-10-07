@@ -19,7 +19,7 @@ import {
   Legend,
   LabelList,
 } from "recharts";
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -183,19 +184,23 @@ function Estadisticas() {
 
   const reportItems = useMemo(
     () =>
-      items.filter((item) => {
-        const area = item.usuario_id
-          ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-          : (item.solicitante_area ?? "Sin área");
-        const date = getLocalDateKey(item.fecha_creacion);
-        return (
-          (!reportStartDate || date >= reportStartDate) &&
-          (!reportEndDate || date <= reportEndDate) &&
-          (reportArea === "all" || area === reportArea) &&
-          (reportStatus === "all" || item.estado === reportStatus) &&
-          (reportUrgency === "all" || item.urgencia === reportUrgency)
-        );
-      }),
+      items
+        .filter((item) => {
+          const area = item.usuario_id
+            ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
+            : (item.solicitante_area ?? "Sin área");
+          const date = getLocalDateKey(item.fecha_creacion);
+          return (
+            (!reportStartDate || date >= reportStartDate) &&
+            (!reportEndDate || date <= reportEndDate) &&
+            (reportArea === "all" || area === reportArea) &&
+            (reportStatus === "all" || item.estado === reportStatus) &&
+            (reportUrgency === "all" || item.urgencia === reportUrgency)
+          );
+        })
+        .sort(
+          (a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime(),
+        ),
     [items, areas, reportStartDate, reportEndDate, reportArea, reportStatus, reportUrgency],
   );
 
@@ -238,7 +243,7 @@ function Estadisticas() {
     const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "informe-tickets.csv";
+    link.download = "informe-solicitudes.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -415,6 +420,7 @@ function Estadisticas() {
                 />
                 <Tooltip
                   wrapperClassName="app-chart-tooltip"
+                  cursor={{ fill: "var(--chart-cursor-background)" }}
                   contentStyle={{
                     background: "var(--chart-tooltip-background)",
                     border: "1px solid var(--chart-tooltip-border)",
@@ -443,17 +449,26 @@ function Estadisticas() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={urgencias}
+                  data={urgencias.filter((slice) => slice.value > 0)}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={50}
                   outerRadius={90}
                   paddingAngle={4}
                 >
-                  {urgencias.map((e, i) => (
-                    <Cell key={i} fill={e.color} />
-                  ))}
-                  <LabelList dataKey="value" position="inside" fill="#fff" fontSize={12} />
+                  {urgencias
+                    .filter((slice) => slice.value > 0)
+                    .map((e, i) => (
+                      <Cell key={i} fill={e.color} />
+                    ))}
+                  <LabelList
+                    dataKey="value"
+                    position="inside"
+                    fill="#000"
+                    stroke="none"
+                    style={{ fill: "#000", fontWeight: 700 }}
+                    fontSize={16}
+                  />
                 </Pie>
                 <Legend />
                 <Tooltip
@@ -478,17 +493,26 @@ function Estadisticas() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={estados}
+                  data={estados.filter((slice) => slice.value > 0)}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={50}
                   outerRadius={90}
                   paddingAngle={4}
                 >
-                  {estados.map((e, i) => (
-                    <Cell key={i} fill={e.color} />
-                  ))}
-                  <LabelList dataKey="value" position="inside" fill="#fff" fontSize={12} />
+                  {estados
+                    .filter((slice) => slice.value > 0)
+                    .map((e, i) => (
+                      <Cell key={i} fill={e.color} />
+                    ))}
+                  <LabelList
+                    dataKey="value"
+                    position="inside"
+                    fill="#000"
+                    stroke="none"
+                    style={{ fill: "#000", fontWeight: 700 }}
+                    fontSize={16}
+                  />
                 </Pie>
                 <Legend />
                 <Tooltip
@@ -520,9 +544,9 @@ function Estadisticas() {
         <Card className="p-5 lg:col-span-2">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Informe de tickets</h2>
+              <h2 className="text-lg font-semibold">Informe de solicitudes</h2>
               <p className="text-sm text-muted-foreground">
-                {reportItems.length} tickets encontrados
+                {reportItems.length} solicitudes encontradas
               </p>
             </div>
             <Button
@@ -537,7 +561,7 @@ function Estadisticas() {
             </Button>
           </div>
 
-          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div>
               <label
                 htmlFor="report-start-date"
@@ -545,13 +569,13 @@ function Estadisticas() {
               >
                 Desde
               </label>
-              <input
+              <Input
                 id="report-start-date"
                 type="date"
                 value={reportStartDate}
                 max={reportEndDate || undefined}
                 onChange={(event) => setReportStartDate(event.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="text-sm"
               />
             </div>
             <div>
@@ -561,13 +585,13 @@ function Estadisticas() {
               >
                 Hasta
               </label>
-              <input
+              <Input
                 id="report-end-date"
                 type="date"
                 value={reportEndDate}
                 min={reportStartDate || undefined}
                 onChange={(event) => setReportEndDate(event.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="text-sm"
               />
             </div>
             <div>
@@ -620,6 +644,28 @@ function Estadisticas() {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full self-end"
+              onClick={() => {
+                setReportStartDate("");
+                setReportEndDate("");
+                setReportArea("all");
+                setReportStatus("all");
+                setReportUrgency("all");
+              }}
+              disabled={
+                !reportStartDate &&
+                !reportEndDate &&
+                reportArea === "all" &&
+                reportStatus === "all" &&
+                reportUrgency === "all"
+              }
+            >
+              <X className="h-4 w-4" />
+              Limpiar filtros
+            </Button>
           </div>
 
           <div className="hidden max-h-[32rem] overflow-auto rounded-md border md:block">
@@ -660,7 +706,7 @@ function Estadisticas() {
                 {!reportItems.length && (
                   <tr>
                     <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                      No hay tickets para los filtros seleccionados.
+                      No hay solicitudes para los filtros seleccionados.
                     </td>
                   </tr>
                 )}
@@ -714,7 +760,7 @@ function Estadisticas() {
             ))}
             {!reportItems.length && (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No hay tickets para los filtros seleccionados.
+                No hay solicitudes para los filtros seleccionados.
               </p>
             )}
           </div>
@@ -723,7 +769,7 @@ function Estadisticas() {
               <div className="text-sm text-muted-foreground">
                 Mostrando {(reportPage - 1) * reportPageSize + 1}-
                 {Math.min(reportPage * reportPageSize, reportItems.length)} de {reportItems.length}{" "}
-                tickets
+                solicitudes
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button

@@ -288,7 +288,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-2xl font-bold tracking-tight text-foreground">SIG</span>
-            <div className="h-8 border-l border-border" />
+            <div className="app-shell-header-divider h-8 border-l border-border" />
             <div className="leading-tight">
               <div className="text-sm font-bold text-foreground">Área de Sistemas</div>
               <div className="text-[11px] text-muted-foreground">Ministerio de Producción</div>
@@ -326,7 +326,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-foreground">SIG</span>
-            <div className="h-7 border-l border-border" />
+            <div className="app-shell-header-divider h-7 border-l border-border" />
             <div className="min-w-0 leading-tight">
               <div className="truncate text-[11px] font-semibold text-foreground">
                 Área de Sistemas
@@ -367,7 +367,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="flex-1 pt-20 pb-56 lg:pl-64 lg:pt-24 lg:pb-48">
+      <main className="flex-1 pt-20 lg:pl-64 lg:pt-24">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10">{children}</div>
       </main>
 
