@@ -24,22 +24,38 @@ function RecoverPasswordPage() {
     setLoading(true);
     setError("");
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/actualizar-password`,
-    });
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/actualizar-password`,
+      });
 
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      setSent(true);
+      if (resetError) {
+        console.error("Error al solicitar recuperación de contraseña:", resetError);
+        setError(
+          resetError.status >= 500 || resetError.message === "{}"
+            ? "No se pudo enviar el correo por un problema del servicio. Intentá nuevamente más tarde o contactá al administrador."
+            : resetError.message,
+        );
+      } else {
+        setSent(true);
+      }
+    } catch (requestError) {
+      console.error("Error inesperado al solicitar recuperación de contraseña:", requestError);
+      setError(
+        "No se pudo conectar con el servicio de recuperación. Revisá tu conexión e intentá nuevamente.",
+      );
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <Card className="w-full max-w-md border-border bg-card/70 p-6 backdrop-blur">
-        <Link to="/auth" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/auth"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio de sesión
         </Link>
@@ -50,7 +66,8 @@ function RecoverPasswordPage() {
 
         {sent ? (
           <p className="mt-6 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-foreground">
-            Revisá tu correo. Si la dirección está registrada, recibirás un enlace para recuperar tu contraseña.
+            Revisá tu correo. Si la dirección está registrada, recibirás un enlace para recuperar tu
+            contraseña.
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">

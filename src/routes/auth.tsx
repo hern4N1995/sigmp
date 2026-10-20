@@ -58,6 +58,7 @@ function AuthPage() {
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -94,7 +95,7 @@ function AuthPage() {
             <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               SIG
             </span>
-            <div className="h-7 border-l border-border sm:h-8" />
+            <div className="app-shell-header-divider h-7 border-l border-border sm:h-8" />
             <div className="leading-tight">
               <div className="text-xs font-bold text-foreground sm:text-sm">Área de Sistemas</div>
               <div className="text-[10px] text-muted-foreground sm:text-[11px]">

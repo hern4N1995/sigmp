@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
-import { LayoutDashboard, Clock, CircleCheck, ClipboardList, Timer, TrendingUp } from "lucide-react";
+import {
+  LayoutDashboard,
+  Clock,
+  CircleCheck,
+  ClipboardList,
+  Timer,
+  TrendingUp,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -28,7 +35,9 @@ function AdminDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("solicitudes").select("id, estado, fecha_creacion, fecha_finalizacion");
+      const { data } = await supabase
+        .from("solicitudes")
+        .select("id, estado, fecha_creacion, fecha_finalizacion");
       setItems((data as Sol[]) ?? []);
       setLoading(false);
     };
@@ -53,7 +62,8 @@ function AdminDashboard() {
       resueltas.length > 0
         ? resueltas.reduce(
             (acc, s) =>
-              acc + (new Date(s.fecha_finalizacion!).getTime() - new Date(s.fecha_creacion).getTime()),
+              acc +
+              (new Date(s.fecha_finalizacion!).getTime() - new Date(s.fecha_creacion).getTime()),
             0,
           ) / resueltas.length
         : 0;
@@ -65,7 +75,12 @@ function AdminDashboard() {
     { label: "Solicitudes del día", value: stats.delDia, icon: TrendingUp, color: "text-primary" },
     { label: "Pendientes", value: stats.pendientes, icon: Clock, color: "text-amber-400" },
     { label: "Finalizadas", value: stats.finalizados, icon: CircleCheck, color: "text-primary" },
-    { label: "Total histórico", value: stats.total, icon: ClipboardList, color: "text-muted-foreground" },
+    {
+      label: "Total histórico",
+      value: stats.total,
+      icon: ClipboardList,
+      color: "text-muted-foreground",
+    },
     {
       label: "Tiempo promedio",
       value: stats.promedioHoras > 0 ? `${stats.promedioHoras.toFixed(1)} h` : "—",
@@ -82,7 +97,9 @@ function AdminDashboard() {
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Panel administrativo</h1>
-          <p className="text-sm text-muted-foreground">Indicadores del servicio de soporte técnico.</p>
+          <p className="text-sm text-muted-foreground">
+            Indicadores del servicio de soporte técnico.
+          </p>
         </div>
       </div>
 
@@ -97,9 +114,7 @@ function AdminDashboard() {
                 </span>
                 <Icon className={`h-4 w-4 ${c.color}`} />
               </div>
-              <div className="text-3xl font-bold tracking-tight">
-                {loading ? "—" : c.value}
-              </div>
+              <div className="text-3xl font-bold tracking-tight">{loading ? "—" : c.value}</div>
             </Card>
           );
         })}
@@ -108,7 +123,7 @@ function AdminDashboard() {
       <Card className="mt-6 p-6">
         <h2 className="mb-1 text-lg font-semibold">Accesos rápidos</h2>
         <p className="text-sm text-muted-foreground">
-          Usá el menú para gestionar solicitudes o explorar las estadísticas del área.
+          Usá el menú para gestionar solicitudes, usuarios y unidades.
         </p>
       </Card>
     </AppShell>

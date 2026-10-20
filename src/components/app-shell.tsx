@@ -13,6 +13,7 @@ import {
   Bell,
   Users,
   UserCircle,
+  Network,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,6 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
     { to: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
     { to: "/admin/usuarios", label: "Usuarios", icon: Users },
+    { to: "/admin/organigrama", label: "Organigrama", icon: Network },
     { to: "/perfil", label: "Mi perfil", icon: UserCircle },
   ];
 

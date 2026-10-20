@@ -8,10 +8,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
     const { data: profile } = await supabase
       .from("profiles")
-      .select("perfil_completo")
+      .select("perfil_completo, unidad_id")
       .eq("id", data.user.id)
       .maybeSingle();
-    const complete = profile?.perfil_completo ?? false;
+    const complete = Boolean(profile?.perfil_completo && profile.unidad_id);
     if (!complete && location.pathname !== "/completar-perfil") {
       throw redirect({ to: "/completar-perfil" });
     }

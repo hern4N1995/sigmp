@@ -1,0 +1,43 @@
+[
+  { "codigo": "1",       "nombre": "Ministerio de Producción",                                          "tipo": "ministerio",    "padre": null,    "cargo_jefe": "Ministro/a de Producción" },
+
+  { "codigo": "1.1",     "nombre": "Secretaría Privada",                                                "tipo": "secretaria",    "padre": "1",     "cargo_jefe": "Secretario/a Privado/a" },
+
+  { "codigo": "1.2",     "nombre": "Secretaría de Agricultura y Ganadería",                             "tipo": "secretaria",    "padre": "1",     "cargo_jefe": "Secretario/a de Agricultura y Ganadería" },
+  { "codigo": "1.2.1",   "nombre": "Dirección de Producción Vegetal",                                   "tipo": "direccion",     "padre": "1.2",   "cargo_jefe": "Director/a de Producción Vegetal" },
+  { "codigo": "1.2.2",   "nombre": "Dirección de Producción Animal",                                    "tipo": "direccion",     "padre": "1.2",   "cargo_jefe": "Director/a de Producción Animal" },
+  { "codigo": "1.2.2.1", "nombre": "Departamento de Apicultura",                                        "tipo": "departamento",  "padre": "1.2.2", "cargo_jefe": "Jefe/a del Departamento de Apicultura" },
+  { "codigo": "1.2.3",   "nombre": "Mercado Central",                                                   "tipo": "organismo",     "padre": "1.2",   "cargo_jefe": "Administrador/a del Mercado Central" },
+
+  { "codigo": "1.3",     "nombre": "Secretaría de Desarrollo Foresto Industrial",                       "tipo": "secretaria",    "padre": "1",     "cargo_jefe": "Secretario/a de Desarrollo Foresto Industrial" },
+  { "codigo": "1.3.1",   "nombre": "Dirección de Recursos Forestales",                                  "tipo": "direccion",     "padre": "1.3",   "cargo_jefe": "Director/a de Recursos Forestales" },
+  { "codigo": "1.3.1.1", "nombre": "Departamento de Bosques Nativos",                                   "tipo": "departamento",  "padre": "1.3.1", "cargo_jefe": "Jefe/a del Departamento de Bosques Nativos" },
+  { "codigo": "1.3.1.2", "nombre": "Departamento de Bosques Cultivados",                                "tipo": "departamento",  "padre": "1.3.1", "cargo_jefe": "Jefe/a del Departamento de Bosques Cultivados" },
+  { "codigo": "1.3.1.3", "nombre": "Departamento de Protección Forestal",                               "tipo": "departamento",  "padre": "1.3.1", "cargo_jefe": "Jefe/a del Departamento de Protección Forestal" },
+  { "codigo": "1.3.2",   "nombre": "Dirección de Asociaciones y Centros Tecnológicos Foresto Industrial", "tipo": "direccion",   "padre": "1.3",   "cargo_jefe": "Director/a de Asociaciones y Centros Tecnológicos Foresto Industrial" },
+
+  { "codigo": "1.4",     "nombre": "Subsecretaría de Producción",                                       "tipo": "subsecretaria", "padre": "1",     "cargo_jefe": "Subsecretario/a de Producción" },
+  { "codigo": "1.4.1",   "nombre": "Dirección de Cooperativas",                                         "tipo": "direccion",     "padre": "1.4",   "cargo_jefe": "Director/a de Cooperativas" },
+  { "codigo": "1.4.2",   "nombre": "Dirección de Economía Agraria",                                     "tipo": "direccion",     "padre": "1.4",   "cargo_jefe": "Director/a de Economía Agraria" },
+  { "codigo": "1.4.3",   "nombre": "Área de Recursos Hídricos Rurales",                                 "tipo": "area",          "padre": "1.4",   "cargo_jefe": "Responsable del Área de Recursos Hídricos Rurales" },
+  { "codigo": "1.4.4",   "nombre": "Área de Cartografía y Topografía Rural",                            "tipo": "area",          "padre": "1.4",   "cargo_jefe": "Responsable del Área de Cartografía y Topografía Rural" },
+
+  { "codigo": "1.5",     "nombre": "Subsecretaría de Coordinación Administrativa",                      "tipo": "subsecretaria", "padre": "1",     "cargo_jefe": "Subsecretario/a de Coordinación Administrativa" },
+  { "codigo": "1.5.1",   "nombre": "Dirección de Administración",                                       "tipo": "direccion",     "padre": "1.5",   "cargo_jefe": "Director/a de Administración" },
+  { "codigo": "1.5.1.1", "nombre": "Departamento Contable",                                             "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento Contable" },
+  { "codigo": "1.5.1.2", "nombre": "Departamento Tesorería",                                            "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento Tesorería" },
+  { "codigo": "1.5.1.3", "nombre": "Departamento de Rendición de Cuentas",                              "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento de Rendición de Cuentas" },
+  { "codigo": "1.5.1.4", "nombre": "Departamento de Licitaciones y Compras",                            "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento de Licitaciones y Compras" },
+  { "codigo": "1.5.1.5", "nombre": "Departamento de Bienes Patrimoniales",                              "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento de Bienes Patrimoniales" },
+  { "codigo": "1.5.1.6", "nombre": "Departamento de Archivo",                                           "tipo": "departamento",  "padre": "1.5.1", "cargo_jefe": "Jefe/a del Departamento de Archivo" },
+  { "codigo": "1.5.2",   "nombre": "Dirección de Recursos Humanos",                                     "tipo": "direccion",     "padre": "1.5",   "cargo_jefe": "Director/a de Recursos Humanos" },
+  { "codigo": "1.5.3",   "nombre": "Dirección de Asesoría Legal",                                       "tipo": "direccion",     "padre": "1.5",   "cargo_jefe": "Director/a de Asesoría Legal" },
+  { "codigo": "1.5.4",   "nombre": "Departamento de Despacho y Mesa de Entradas",                       "tipo": "departamento",  "padre": "1.5",   "cargo_jefe": "Jefe/a del Departamento de Despacho y Mesa de Entradas" },
+  { "codigo": "1.5.5",   "nombre": "Departamento de Intendencia y Automotores",                         "tipo": "departamento",  "padre": "1.5",   "cargo_jefe": "Jefe/a del Departamento de Intendencia y Automotores" },
+  { "codigo": "1.5.6",   "nombre": "Área de Prensa",                                                    "tipo": "area",          "padre": "1.5",   "cargo_jefe": "Responsable del Área de Prensa" },
+  { "codigo": "1.5.7",   "nombre": "Área de Sistemas",                                                  "tipo": "area",          "padre": "1.5",   "cargo_jefe": "Responsable del Área de Sistemas" },
+  { "codigo": "1.5.8",   "nombre": "Área de Regularización Dominial",                                   "tipo": "area",          "padre": "1.5",   "cargo_jefe": "Responsable del Área de Regularización Dominial" },
+
+  { "codigo": "1.6",     "nombre": "Instituto de Fomento Empresarial (IFE)",                            "tipo": "organismo",     "padre": "1",     "cargo_jefe": "Presidente/a del IFE" },
+  { "codigo": "1.6.1",   "nombre": "Corrientes Exporta",                                                "tipo": "programa",      "padre": "1.6",   "cargo_jefe": "Coordinador/a de Corrientes Exporta" }
+]

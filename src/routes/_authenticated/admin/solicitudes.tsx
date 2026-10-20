@@ -5,13 +5,20 @@ import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { ClipboardList, Search, CheckCircle2, Download, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { Enums } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin/solicitudes")({
   head: () => ({
@@ -30,7 +37,8 @@ type Row = {
   usuario_id: string | null;
   solicitante_nombre: string | null;
   solicitante_email: string | null;
-  solicitante_area: string | null;
+  unidad_id: string | null;
+  unidad_nombre_snapshot: string | null;
   motivo: string;
   descripcion: string;
   urgencia: "urgente" | "normal";
@@ -41,7 +49,12 @@ type Row = {
   motivo_pausa_id: string | null;
   motivo_pausa_detalle: string | null;
   resolucion: string | null;
-  profile?: { nombre: string | null; apellido: string | null; area: string | null; email: string | null };
+  profile?: {
+    nombre: string | null;
+    apellido: string | null;
+    unidad: string | null;
+    email: string | null;
+  };
   responsable?: Person;
   colaborador?: Person;
   motivo_pausa?: { id: string; descripcion: string; orden: number };
@@ -57,13 +70,25 @@ type Person = { nombre: string | null; apellido: string | null; email: string | 
 
 const DESKTOP_PAGE_SIZE = 7;
 const MOBILE_PAGE_SIZE = 3;
+type EstadoSolicitud = Enums<"estado_solicitud">;
+const ESTADOS_SOLICITUD: EstadoSolicitud[] = [
+  "en_espera",
+  "en_proceso",
+  "finalizado",
+  "cancelado",
+  "visto",
+  "pausado",
+];
+
+function isEstadoSolicitud(value: string): value is EstadoSolicitud {
+  return ESTADOS_SOLICITUD.some((estado) => estado === value);
+}
 
 function isOutOfRangeError(error: unknown) {
   return (
     typeof error === "object" &&
     error !== null &&
-    (("status" in error && error.status === 416) ||
-      ("code" in error && error.code === "PGRST103"))
+    (("status" in error && error.status === 416) || ("code" in error && error.code === "PGRST103"))
   );
 }
 
@@ -85,7 +110,7 @@ function AdminSolicitudes() {
   const [viewMode, setViewMode] = useState<"current" | "historic">("current");
   const [currentPage, setCurrentPage] = useState(1);
   const [q, setQ] = useState("");
-  const [filterEstado, setFilterEstado] = useState<string>("all");
+  const [filterEstado, setFilterEstado] = useState<EstadoSolicitud | "all">("all");
   const [onlyMine, setOnlyMine] = useState(false);
 
   const [itemsCurrentMonth, setItemsCurrentMonth] = useState<Row[]>([]);
@@ -124,8 +149,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine) {
-        query = query.eq("asignado_a", user?.id);
+      if (onlyMine && user?.id) {
+        query = query.eq("asignado_a", user.id);
       }
 
       query = query.range(from, to);
@@ -158,8 +183,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine) {
-        query = query.eq("asignado_a", user?.id);
+      if (onlyMine && user?.id) {
+        query = query.eq("asignado_a", user.id);
       }
 
       query = query.range(from, to);
@@ -189,33 +214,71 @@ function AdminSolicitudes() {
       ),
     );
 
-    if (ids.length) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, nombre, apellido, area, area_id, email")
-        .in("id", ids);
+    if (ids.length || rows.some((row) => row.unidad_id)) {
+      const { data: profs, error: profilesError } = ids.length
+        ? await supabase
+            .from("profiles")
+            .select("id, nombre, apellido, unidad_id, es_jefe, email")
+            .in("id", ids)
+        : { data: [], error: null };
+      if (profilesError) {
+        toast.error(`No se pudieron cargar los perfiles: ${profilesError.message}`);
+        return rows;
+      }
 
-      const areaIds = Array.from(new Set((profs ?? []).map((profile) => profile.area_id).filter((id): id is string => Boolean(id))));
-      const { data: areaRows } = areaIds.length
-        ? await supabase.from("areas").select("id, nombre_corto").in("id", areaIds)
-        : { data: [] };
+      const unitIds = Array.from(
+        new Set([
+          ...rows.map((row) => row.unidad_id).filter((id): id is string => Boolean(id)),
+          ...(profs ?? [])
+            .map((profile) => profile.unidad_id)
+            .filter((id): id is string => Boolean(id)),
+        ]),
+      );
+      const { data: unitRows, error: unitsError } = unitIds.length
+        ? await supabase.from("unidades_arbol").select("id, ruta, cargo_jefe").in("id", unitIds)
+        : { data: [], error: null };
+      if (unitsError) {
+        toast.error(`No se pudieron cargar las unidades: ${unitsError.message}`);
+        return rows;
+      }
 
-      const areaMap = new Map((areaRows ?? []).map((area) => [area.id, area.nombre_corto]));
-      const map = new Map((profs ?? []).map((p) => [p.id, p]));
-
-      rows.forEach((r) => {
-        r.profile = map.get(r.usuario_id) as any;
-        if (r.profile?.area_id) r.profile.area = areaMap.get(r.profile.area_id) ?? r.profile.area;
-        r.responsable = r.asignado_a ? map.get(r.asignado_a) : undefined;
-        r.colaborador = r.colaborador_id ? map.get(r.colaborador_id) : undefined;
+      const unitMap = new Map((unitRows ?? []).map((unidad) => [unidad.id, unidad]));
+      const profileMap = new Map((profs ?? []).map((profile) => [profile.id, profile]));
+      rows.forEach((row) => {
+        const profile = row.usuario_id ? profileMap.get(row.usuario_id) : undefined;
+        const ticketUnit = row.unidad_id ? unitMap.get(row.unidad_id) : undefined;
+        const profileUnit = profile?.unidad_id ? unitMap.get(profile.unidad_id) : undefined;
+        const unitDisplay = profile?.es_jefe
+          ? (ticketUnit?.cargo_jefe ?? profileUnit?.cargo_jefe ?? row.unidad_nombre_snapshot)
+          : (row.unidad_nombre_snapshot ?? ticketUnit?.ruta ?? profileUnit?.ruta ?? null);
+        row.profile = profile
+          ? {
+              nombre: profile.nombre,
+              apellido: profile.apellido,
+              email: profile.email,
+              unidad: unitDisplay,
+            }
+          : {
+              nombre: row.solicitante_nombre,
+              apellido: null,
+              email: row.solicitante_email,
+              unidad: row.unidad_nombre_snapshot ?? ticketUnit?.ruta ?? null,
+            };
+        row.responsable = row.asignado_a ? profileMap.get(row.asignado_a) : undefined;
+        row.colaborador = row.colaborador_id ? profileMap.get(row.colaborador_id) : undefined;
       });
     }
 
     const pausedRows = rows.filter((r) => r.estado === "pausado" && r.motivo_pausa_id);
     if (pausedRows.length) {
-      const motivoIds = Array.from(new Set(pausedRows.map((r) => r.motivo_pausa_id).filter((id): id is string => Boolean(id))));
+      const motivoIds = Array.from(
+        new Set(pausedRows.map((r) => r.motivo_pausa_id).filter((id): id is string => Boolean(id))),
+      );
       if (motivoIds.length) {
-        const { data: motivosDataDetail } = await supabase.from("motivos_pausa").select("*").in("id", motivoIds);
+        const { data: motivosDataDetail } = await supabase
+          .from("motivos_pausa")
+          .select("*")
+          .in("id", motivoIds);
         const motivoMap = new Map((motivosDataDetail ?? []).map((m) => [m.id, m]));
         pausedRows.forEach((r) => {
           if (r.motivo_pausa_id) r.motivo_pausa = motivoMap.get(r.motivo_pausa_id);
@@ -234,12 +297,32 @@ function AdminSolicitudes() {
         supabase.from("user_roles").select("user_id").eq("role", "administrador"),
       ]);
 
-      setMotivos((motivosData.data ?? []) as MotivosPausa[]);
+      if (motivosData.error) {
+        toast.error(`No se pudieron cargar los motivos de pausa: ${motivosData.error.message}`);
+      } else {
+        setMotivos(motivosData.data ?? []);
+      }
 
-      const adminIds = (adminRoles.data ?? []).map((r: any) => r.user_id).filter((id) => id !== user?.id);
+      if (adminRoles.error) {
+        toast.error(`No se pudieron cargar los administradores: ${adminRoles.error.message}`);
+        setLoading(false);
+        return;
+      }
+      const adminIds = adminRoles.data.map((role) => role.user_id).filter((id) => id !== user?.id);
       if (adminIds.length) {
-        const { data: adminProfiles } = await supabase.from("profiles").select("id, nombre, apellido, email").in("id", adminIds);
-        setAdmins((adminProfiles ?? []) as Array<{ id: string } & Person>);
+        const { data: adminProfiles, error: adminProfilesError } = await supabase
+          .from("profiles")
+          .select("id, nombre, apellido, email")
+          .in("id", adminIds);
+        if (adminProfilesError) {
+          toast.error(
+            `No se pudieron cargar los perfiles administradores: ${adminProfilesError.message}`,
+          );
+        } else {
+          setAdmins(adminProfiles ?? []);
+        }
+      } else {
+        setAdmins([]);
       }
 
       setLoading(false);
@@ -301,7 +384,7 @@ function AdminSolicitudes() {
         (r.profile?.apellido ?? "").toLowerCase().includes(s) ||
         (r.solicitante_nombre ?? "").toLowerCase().includes(s) ||
         (r.solicitante_email ?? "").toLowerCase().includes(s) ||
-        (r.profile?.area ?? "").toLowerCase().includes(s),
+        (r.profile?.unidad ?? "").toLowerCase().includes(s),
     );
   }, [itemsCurrentMonth, itemsHistoric, q, viewMode]);
 
@@ -313,10 +396,31 @@ function AdminSolicitudes() {
       : currentPage <= 4
         ? [1, 2, 3, 4, 5, "end-ellipsis", totalPages]
         : currentPage >= totalPages - 3
-          ? [1, "start-ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
-          : [1, "start-ellipsis", currentPage - 1, currentPage, currentPage + 1, "end-ellipsis", totalPages];
+          ? [
+              1,
+              "start-ellipsis",
+              totalPages - 4,
+              totalPages - 3,
+              totalPages - 2,
+              totalPages - 1,
+              totalPages,
+            ]
+          : [
+              1,
+              "start-ellipsis",
+              currentPage - 1,
+              currentPage,
+              currentPage + 1,
+              "end-ellipsis",
+              totalPages,
+            ];
 
-  const changeEstado = async (id: string, estado: Row["estado"], selectedCollaboratorId: string | null = null, resolucion: string | null = null) => {
+  const changeEstado = async (
+    id: string,
+    estado: Row["estado"],
+    selectedCollaboratorId: string | null = null,
+    resolucion: string | null = null,
+  ) => {
     const { error } = await supabase
       .from("solicitudes")
       .update({
@@ -377,14 +481,22 @@ function AdminSolicitudes() {
 
   const confirmFinalization = async () => {
     if (!pendingFinalization) return;
-    await changeEstado(pendingFinalization.id, "finalizado", collaboratorId === "none" ? null : collaboratorId, finalizationComment || null);
+    await changeEstado(
+      pendingFinalization.id,
+      "finalizado",
+      collaboratorId === "none" ? null : collaboratorId,
+      finalizationComment || null,
+    );
     setPendingFinalization(null);
   };
 
   const exportToCSV = async () => {
     try {
       setLoading(true);
-      let query = supabase.from("solicitudes").select("*").order("fecha_creacion", { ascending: false });
+      let query = supabase
+        .from("solicitudes")
+        .select("*")
+        .order("fecha_creacion", { ascending: false });
 
       if (viewMode === "current") {
         const { startISO, endISO } = getMonthRange();
@@ -395,8 +507,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine) {
-        query = query.eq("asignado_a", user?.id);
+      if (onlyMine && user?.id) {
+        query = query.eq("asignado_a", user.id);
       }
 
       const { data, error } = await query;
@@ -411,11 +523,20 @@ function AdminSolicitudes() {
       const enriched = await enrichRows((data as Row[]) ?? []);
 
       // Convertir a CSV
-      const headers = ["Fecha", "Empleado", "Área", "Motivo", "Urgencia", "Estado", "Responsable", "Descripción"];
+      const headers = [
+        "Fecha",
+        "Empleado",
+        "Unidad",
+        "Motivo",
+        "Urgencia",
+        "Estado",
+        "Responsable",
+        "Descripción",
+      ];
       const rows = enriched.map((r) => [
         new Date(r.fecha_creacion).toLocaleString("es-AR"),
         `${r.profile?.nombre ?? r.solicitante_nombre ?? ""} ${r.profile?.apellido ?? ""}`.trim(),
-        r.profile?.area ?? r.solicitante_area ?? "Sin área",
+        r.profile?.unidad ?? r.unidad_nombre_snapshot ?? "Sin unidad",
         r.motivo,
         r.urgencia,
         r.estado,
@@ -423,7 +544,10 @@ function AdminSolicitudes() {
         r.descripcion,
       ]);
 
-      const csv = [headers.map((h) => `"${h}"`).join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
+      const csv = [
+        headers.map((h) => `"${h}"`).join(","),
+        ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+      ].join("\n");
 
       // Descargar
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -453,7 +577,10 @@ function AdminSolicitudes() {
     });
   };
 
-  const fullName = (profile?: any, solicitanteName?: string | null) => {
+  const fullName = (
+    profile?: Pick<Person, "nombre" | "apellido">,
+    solicitanteName?: string | null,
+  ) => {
     if (profile?.nombre) return `${profile.nombre} ${profile.apellido ?? ""}`.trim();
     return solicitanteName ?? "Usuario eliminado";
   };
@@ -517,13 +644,18 @@ function AdminSolicitudes() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar por motivo, empleado o área..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
+            <Input
+              placeholder="Buscar por motivo, empleado o unidad..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="pl-9"
+            />
           </div>
           <Select
             value={filterEstado}
             onValueChange={(value) => {
               setCurrentPage(1);
-              setFilterEstado(value);
+              if (value === "all" || isEstadoSolicitud(value)) setFilterEstado(value);
             }}
           >
             <SelectTrigger className="sm:w-48">
@@ -569,7 +701,7 @@ function AdminSolicitudes() {
                   <tr>
                     <th className="px-3 py-2 font-medium">Fecha</th>
                     <th className="px-3 py-2 font-medium">Empleado</th>
-                    <th className="px-3 py-2 font-medium">Área</th>
+                    <th className="px-3 py-2 font-medium">Unidad</th>
                     <th className="px-3 py-2 font-medium">Motivo</th>
                     <th className="px-3 py-2 font-medium">Estado</th>
                     <th className="px-3 py-2 font-medium text-right">Acciones</th>
@@ -577,13 +709,26 @@ function AdminSolicitudes() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {displayData.map((r) => (
-                    <tr key={r.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setDetail(r)}>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">{formatDate(r.fecha_creacion)}</td>
-                      <td className="px-3 py-3 font-medium">{fullName(r.profile, r.solicitante_nombre)}</td>
-                      <td className="px-3 py-3 text-sm text-muted-foreground">{r.profile?.area ?? r.solicitante_area ?? "Sin área"}</td>
+                    <tr
+                      key={r.id}
+                      className="cursor-pointer hover:bg-muted/30"
+                      onClick={() => setDetail(r)}
+                    >
+                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                        {formatDate(r.fecha_creacion)}
+                      </td>
+                      <td className="px-3 py-3 font-medium">
+                        {fullName(r.profile, r.solicitante_nombre)}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-muted-foreground">
+                        {r.profile?.unidad ?? r.unidad_nombre_snapshot ?? "Sin unidad"}
+                      </td>
                       <td className="max-w-xs truncate px-3 py-3 text-sm">{r.motivo}</td>
                       <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                        <Select value={r.estado} onValueChange={(v) => requestEstadoChange(r, v as Row["estado"])}>
+                        <Select
+                          value={r.estado}
+                          onValueChange={(v) => requestEstadoChange(r, v as Row["estado"])}
+                        >
                           <SelectTrigger className="h-8 w-32 text-xs">
                             <SelectValue />
                           </SelectTrigger>
@@ -602,7 +747,9 @@ function AdminSolicitudes() {
                               <>
                                 <SelectItem value="en_espera">En espera</SelectItem>
                                 <SelectItem value="en_proceso">En proceso</SelectItem>
-                                {r.estado === "en_proceso" && <SelectItem value="pausado">Pausar</SelectItem>}
+                                {r.estado === "en_proceso" && (
+                                  <SelectItem value="pausado">Pausar</SelectItem>
+                                )}
                                 <SelectItem value="finalizado">Finalizado</SelectItem>
                                 <SelectItem value="cancelado">Cancelado</SelectItem>
                               </>
@@ -619,7 +766,12 @@ function AdminSolicitudes() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => requestEstadoChange(r, r.estado === "cancelado" ? "visto" : "finalizado")}
+                              onClick={() =>
+                                requestEstadoChange(
+                                  r,
+                                  r.estado === "cancelado" ? "visto" : "finalizado",
+                                )
+                              }
                             >
                               <CheckCircle2 className="h-4 w-4 text-primary" />
                             </Button>
@@ -638,15 +790,17 @@ function AdminSolicitudes() {
                 <Card key={r.id} className="p-4">
                   <div className="mb-3 flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="text-xs text-muted-foreground">{formatDate(r.fecha_creacion)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDate(r.fecha_creacion)}
+                      </div>
                       <div className="font-medium">{fullName(r.profile, r.solicitante_nombre)}</div>
                     </div>
                     <UrgenciaBadge value={r.urgencia} />
                   </div>
                   <div className="mb-3 space-y-1 text-sm">
                     <div>
-                      <span className="text-xs text-muted-foreground">Área: </span>
-                      {r.profile?.area ?? r.solicitante_area ?? "Sin área"}
+                      <span className="text-xs text-muted-foreground">Unidad: </span>
+                      {r.profile?.unidad ?? r.unidad_nombre_snapshot ?? "Sin unidad"}
                     </div>
                     <div>
                       <span className="text-xs text-muted-foreground">Motivo: </span>
@@ -657,14 +811,21 @@ function AdminSolicitudes() {
                     <EstadoBadge value={r.estado} />
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setDetail(r)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setDetail(r)}
+                    >
                       Ver
                     </Button>
                     {r.estado !== "finalizado" && r.estado !== "visto" && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => requestEstadoChange(r, r.estado === "cancelado" ? "visto" : "finalizado")}
+                        onClick={() =>
+                          requestEstadoChange(r, r.estado === "cancelado" ? "visto" : "finalizado")
+                        }
                       >
                         <CheckCircle2 className="h-3 w-3" />
                       </Button>
@@ -678,7 +839,8 @@ function AdminSolicitudes() {
             {totalPages > 1 && (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages} ({totalRecords} registros; {pageSize} por página)
+                  Página {currentPage} de {totalPages} ({totalRecords} registros; {pageSize} por
+                  página)
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -740,15 +902,21 @@ function AdminSolicitudes() {
               <div className="grid gap-3 rounded-lg bg-muted/40 p-3 sm:grid-cols-2">
                 <div>
                   <div className="text-xs text-muted-foreground">Empleado</div>
-                  <div className="break-words font-medium">{fullName(detail.profile, detail.solicitante_nombre)}</div>
+                  <div className="break-words font-medium">
+                    {fullName(detail.profile, detail.solicitante_nombre)}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Área</div>
-                  <div className="break-words font-medium">{detail.profile?.area ?? detail.solicitante_area ?? "Sin área"}</div>
+                  <div className="text-xs text-muted-foreground">Unidad</div>
+                  <div className="break-words font-medium">
+                    {detail.profile?.unidad ?? detail.unidad_nombre_snapshot ?? "Sin unidad"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Email</div>
-                  <div className="break-words font-medium">{detail.profile?.email ?? detail.solicitante_email ?? "Sin email"}</div>
+                  <div className="break-words font-medium">
+                    {detail.profile?.email ?? detail.solicitante_email ?? "Sin email"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Fecha de creación</div>
@@ -756,43 +924,65 @@ function AdminSolicitudes() {
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Fecha de finalización</div>
-                  <div>{detail.fecha_finalizacion ? new Date(detail.fecha_finalizacion).toLocaleString("es-AR") : "No corresponde"}</div>
+                  <div>
+                    {detail.fecha_finalizacion
+                      ? new Date(detail.fecha_finalizacion).toLocaleString("es-AR")
+                      : "No corresponde"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Responsable asignado</div>
-                  <div className="break-words font-medium">{detail.responsable ? `${detail.responsable.nombre ?? ""} ${detail.responsable.apellido ?? ""}`.trim() : "Sin asignar"}</div>
+                  <div className="break-words font-medium">
+                    {detail.responsable
+                      ? `${detail.responsable.nombre ?? ""} ${detail.responsable.apellido ?? ""}`.trim()
+                      : "Sin asignar"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Colaborador</div>
-                  <div className="break-words font-medium">{detail.colaborador ? `${detail.colaborador.nombre ?? ""} ${detail.colaborador.apellido ?? ""}`.trim() : "Ninguno"}</div>
+                  <div className="break-words font-medium">
+                    {detail.colaborador
+                      ? `${detail.colaborador.nombre ?? ""} ${detail.colaborador.apellido ?? ""}`.trim()
+                      : "Ninguno"}
+                  </div>
                 </div>
               </div>
               <div>
                 <div className="mb-1 text-xs text-muted-foreground">Descripción</div>
-                <p className="break-words whitespace-pre-wrap rounded-lg border border-border bg-background p-3">{detail.descripcion}</p>
+                <p className="break-words whitespace-pre-wrap rounded-lg border border-border bg-background p-3">
+                  {detail.descripcion}
+                </p>
               </div>
               {detail.motivo_cancelacion && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Motivo de cancelación</div>
-                  <p className="break-words whitespace-pre-wrap rounded-lg border border-destructive/30 bg-destructive/5 p-3">{detail.motivo_cancelacion}</p>
+                  <p className="break-words whitespace-pre-wrap rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                    {detail.motivo_cancelacion}
+                  </p>
                 </div>
               )}
               {detail.estado === "pausado" && detail.motivo_pausa && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Motivo de pausa</div>
-                  <p className="break-words whitespace-pre-wrap rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">{detail.motivo_pausa.descripcion}</p>
+                  <p className="break-words whitespace-pre-wrap rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    {detail.motivo_pausa.descripcion}
+                  </p>
                 </div>
               )}
               {detail.estado === "pausado" && detail.motivo_pausa_detalle && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Detalles de la pausa</div>
-                  <p className="break-words whitespace-pre-wrap rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">{detail.motivo_pausa_detalle}</p>
+                  <p className="break-words whitespace-pre-wrap rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    {detail.motivo_pausa_detalle}
+                  </p>
                 </div>
               )}
               {detail.estado === "finalizado" && detail.resolucion && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Resolución</div>
-                  <p className="break-words whitespace-pre-wrap rounded-lg border border-green-500/30 bg-green-500/5 p-3">{detail.resolucion}</p>
+                  <p className="break-words whitespace-pre-wrap rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+                    {detail.resolucion}
+                  </p>
                 </div>
               )}
             </div>
@@ -801,7 +991,10 @@ function AdminSolicitudes() {
       </Dialog>
 
       {/* FINALIZATION DIALOG */}
-      <Dialog open={!!pendingFinalization} onOpenChange={(open) => !open && setPendingFinalization(null)}>
+      <Dialog
+        open={!!pendingFinalization}
+        onOpenChange={(open) => !open && setPendingFinalization(null)}
+      >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Finalizar solicitud</DialogTitle>
@@ -862,24 +1055,29 @@ function AdminSolicitudes() {
                 ))}
               </SelectContent>
             </Select>
-            {selectedPauseReason && motivos.find((m) => m.id === selectedPauseReason)?.descripcion === "Otro" && (
-              <div>
-                <label className="text-sm font-medium">Detalle de la pausa</label>
-                <Input
-                  placeholder="Describa por qué la solicitud está pausada..."
-                  value={customPauseDetail}
-                  onChange={(e) => setCustomPauseDetail(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            )}
+            {selectedPauseReason &&
+              motivos.find((m) => m.id === selectedPauseReason)?.descripcion === "Otro" && (
+                <div>
+                  <label className="text-sm font-medium">Detalle de la pausa</label>
+                  <Input
+                    placeholder="Describa por qué la solicitud está pausada..."
+                    value={customPauseDetail}
+                    onChange={(e) => setCustomPauseDetail(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setPendingPause(null)}>
                 Cancelar
               </Button>
               <Button
                 onClick={() => void confirmPause()}
-                disabled={!selectedPauseReason || (motivos.find((m) => m.id === selectedPauseReason)?.descripcion === "Otro" && !customPauseDetail.trim())}
+                disabled={
+                  !selectedPauseReason ||
+                  (motivos.find((m) => m.id === selectedPauseReason)?.descripcion === "Otro" &&
+                    !customPauseDetail.trim())
+                }
               >
                 Pausar solicitud
               </Button>

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { UserCircle, ShieldCheck, User as UserIcon } from "lucide-react";
+import { UserCircle, User as UserIcon, KeyRound, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -25,36 +25,77 @@ type Profile = {
   apellido: string | null;
   email: string | null;
   dni: string | null;
-  area: string | null;
-  area_id: string | null;
-  area_nombre_corto: string | null;
+  unidad_id: string | null;
+  es_jefe: boolean;
+  solicitud_jefe: "pendiente" | "rechazada" | null;
+  unidad_ruta: string | null;
+  cargo_jefe: string | null;
 };
 
 function MiPerfil() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  const changePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (password !== passwordConfirmation) {
+      toast.error("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        toast.error(`No se pudo cambiar la contraseña: ${error.message}`);
+        return;
+      }
+
+      setPassword("");
+      setPasswordConfirmation("");
+      toast.success("La contraseña se actualizó correctamente.");
+    } catch (error) {
+      console.error("Error inesperado al cambiar la contraseña:", error);
+      toast.error("No se pudo cambiar la contraseña. Intentá nuevamente.");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("nombre, apellido, email, dni, area, area_id")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data, error }, { data: unidades, error: unidadesError }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nombre, apellido, email, dni, unidad_id, es_jefe, solicitud_jefe")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase.from("unidades_arbol").select("id, ruta, cargo_jefe"),
+      ]);
       if (error) {
         toast.error(error.message);
+        return;
+      }
+      if (unidadesError) {
+        toast.error(`No se pudieron cargar las unidades: ${unidadesError.message}`);
         return;
       }
       if (!data) {
         setProfile(null);
         return;
       }
-      const { data: area } = data.area_id
-        ? await supabase.from("areas").select("nombre_corto").eq("id", data.area_id).maybeSingle()
-        : { data: null };
-      setProfile({ ...data, area_nombre_corto: area?.nombre_corto ?? null } as Profile);
+      const unidad = (unidades ?? []).find((option) => option.id === data.unidad_id);
+      setProfile({
+        ...data,
+        unidad_ruta: unidad?.ruta ?? null,
+        cargo_jefe: unidad?.cargo_jefe ?? null,
+      });
     };
     loadProfile();
   }, [user]);
@@ -81,10 +122,6 @@ function MiPerfil() {
               <div>
                 <div className="text-lg font-semibold">
                   {profile?.nombre ?? ""} {profile?.apellido ?? ""}
-                </div>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  {isAdmin ? "Administrador" : "Empleado"}
                 </div>
               </div>
             </div>
@@ -115,14 +152,76 @@ function MiPerfil() {
               <Input value={profile?.dni ?? ""} disabled />
             </div>
             <div className="space-y-1.5">
-              <Label>Área</Label>
-              <Input value={profile?.area_nombre_corto ?? profile?.area ?? ""} disabled />
+              <Label>Unidad</Label>
+              <Input
+                value={profile?.es_jefe ? (profile.cargo_jefe ?? "") : (profile?.unidad_ruta ?? "")}
+                disabled
+              />
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Rol</Label>
-              <Input value={isAdmin ? "Administrador" : "Empleado"} disabled />
+            {(profile?.es_jefe || profile?.solicitud_jefe) && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Solicitud de jefatura</Label>
+                <Input
+                  value={
+                    profile.es_jefe
+                      ? "Aprobada"
+                      : profile.solicitud_jefe === "pendiente"
+                        ? "Pendiente de aprobación"
+                        : "Rechazada"
+                  }
+                  disabled
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="mt-6 p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Cambiar contraseña</h2>
+              <p className="text-sm text-muted-foreground">
+                Elegí una contraseña nueva para tu cuenta.
+              </p>
             </div>
           </div>
+          <form onSubmit={changePassword} className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-new-password">Nueva contraseña</Label>
+              <Input
+                id="profile-new-password"
+                type="password"
+                autoComplete="new-password"
+                minLength={6}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={updatingPassword}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="profile-password-confirmation">Confirmar contraseña</Label>
+              <Input
+                id="profile-password-confirmation"
+                type="password"
+                autoComplete="new-password"
+                minLength={6}
+                required
+                value={passwordConfirmation}
+                onChange={(event) => setPasswordConfirmation(event.target.value)}
+                disabled={updatingPassword}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button type="submit" disabled={updatingPassword}>
+                {updatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Actualizar contraseña
+              </Button>
+            </div>
+          </form>
         </Card>
       </div>
     </AppShell>

@@ -25,6 +25,7 @@ import { Route as AuthenticatedNuevaSolicitudRouteImport } from './routes/_authe
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminEstadisticasRouteImport } from './routes/_authenticated/admin/estadisticas'
+import { Route as AuthenticatedAdminOrganigramaRouteImport } from './routes/_authenticated/admin/organigrama'
 import { Route as AuthenticatedAdminSolicitudesRouteImport } from './routes/_authenticated/admin/solicitudes'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 
@@ -111,6 +112,12 @@ const AuthenticatedAdminEstadisticasRoute =
     path: '/estadisticas',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminOrganigramaRoute =
+  AuthenticatedAdminOrganigramaRouteImport.update({
+    id: '/organigrama',
+    path: '/organigrama',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminSolicitudesRoute =
   AuthenticatedAdminSolicitudesRouteImport.update({
     id: '/solicitudes',
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/organigrama': typeof AuthenticatedAdminOrganigramaRoute
   '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/admin/organigrama': typeof AuthenticatedAdminOrganigramaRoute
   '/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -178,6 +187,7 @@ export interface FileRoutesById {
   '/_authenticated/nueva-solicitud': typeof AuthenticatedNuevaSolicitudRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/admin/estadisticas': typeof AuthenticatedAdminEstadisticasRoute
+  '/_authenticated/admin/organigrama': typeof AuthenticatedAdminOrganigramaRoute
   '/_authenticated/admin/solicitudes': typeof AuthenticatedAdminSolicitudesRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/nueva-solicitud'
     | '/perfil'
     | '/admin/estadisticas'
+    | '/admin/organigrama'
     | '/admin/solicitudes'
     | '/admin/usuarios'
     | '/admin/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/nueva-solicitud'
     | '/perfil'
     | '/admin/estadisticas'
+    | '/admin/organigrama'
     | '/admin/solicitudes'
     | '/admin/usuarios'
     | '/admin'
@@ -237,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nueva-solicitud'
     | '/_authenticated/perfil'
     | '/_authenticated/admin/estadisticas'
+    | '/_authenticated/admin/organigrama'
     | '/_authenticated/admin/solicitudes'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/'
@@ -368,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEstadisticasRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/organigrama': {
+      id: '/_authenticated/admin/organigrama'
+      path: '/organigrama'
+      fullPath: '/admin/organigrama'
+      preLoaderRoute: typeof AuthenticatedAdminOrganigramaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/solicitudes': {
       id: '/_authenticated/admin/solicitudes'
       path: '/solicitudes'
@@ -387,6 +407,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminEstadisticasRoute: typeof AuthenticatedAdminEstadisticasRoute
+  AuthenticatedAdminOrganigramaRoute: typeof AuthenticatedAdminOrganigramaRoute
   AuthenticatedAdminSolicitudesRoute: typeof AuthenticatedAdminSolicitudesRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -395,6 +416,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminEstadisticasRoute: AuthenticatedAdminEstadisticasRoute,
+    AuthenticatedAdminOrganigramaRoute: AuthenticatedAdminOrganigramaRoute,
     AuthenticatedAdminSolicitudesRoute: AuthenticatedAdminSolicitudesRoute,
     AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

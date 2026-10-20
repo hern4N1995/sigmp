@@ -3,20 +3,15 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { UnidadSelector } from "@/components/unidad-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Loader2, UserCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, UserCircle } from "lucide-react";
 import { toast } from "sonner";
+import type { UnidadOption } from "@/components/unidad-selector";
 
 export const Route = createFileRoute("/_authenticated/completar-perfil")({
   head: () => ({
@@ -48,23 +43,22 @@ const schema = z.object({
     .string()
     .trim()
     .regex(/^\d{7,8}$/, "El DNI debe tener 7 u 8 dígitos"),
-  areaId: z.string().uuid("Área requerida"),
+  unidadId: z.string().uuid("Elegí una unidad."),
+  soyJefe: z.boolean(),
 });
-
-type Area = { id: string; nombre_completo: string; nombre_corto: string };
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
 
 function Perfil() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ nombre: "", apellido: "", dni: "", areaId: "" });
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [areaOpen, setAreaOpen] = useState(false);
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    dni: "",
+    unidadId: "",
+    soyJefe: false,
+  });
+  const [unidades, setUnidades] = useState<UnidadOption[]>([]);
+  const [solicitudJefe, setSolicitudJefe] = useState<"pendiente" | "rechazada" | null>(null);
+  const [esJefe, setEsJefe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initial, setInitial] = useState(true);
   const [profileComplete, setProfileComplete] = useState(false);
@@ -72,24 +66,32 @@ function Perfil() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-      const [{ data: p }, { data: areaOptions, error: areasError }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle(),
-        supabase.from("areas").select("id, nombre_completo, nombre_corto").order("nombre_corto"),
-      ]);
-      if (areasError) toast.error(areasError.message);
-      setAreas(areaOptions ?? []);
+      const [{ data: p, error: profileError }, { data: unitOptions, error: unitsError }] =
+        await Promise.all([
+          supabase
+            .from("profiles")
+            .select("nombre, apellido, dni, perfil_completo, unidad_id, es_jefe, solicitud_jefe")
+            .eq("id", data.user.id)
+            .maybeSingle(),
+          supabase
+            .from("unidades_arbol")
+            .select("id, ruta, activo")
+            .eq("activo", true)
+            .order("ruta"),
+        ]);
+      if (profileError) toast.error(`No se pudo cargar tu perfil: ${profileError.message}`);
+      if (unitsError) toast.error(`No se pudieron cargar las unidades: ${unitsError.message}`);
+      setUnidades((unitOptions ?? []) as UnidadOption[]);
       if (p) {
         setProfileComplete(p.perfil_completo);
+        setSolicitudJefe(p.solicitud_jefe);
+        setEsJefe(p.es_jefe);
         setForm({
           nombre: p.nombre ?? "",
           apellido: p.apellido ?? "",
           dni: p.dni ?? "",
-          areaId:
-            p.area_id ??
-            areaOptions?.find(
-              (area) => area.nombre_completo === p.area || area.nombre_corto === p.area,
-            )?.id ??
-            "",
+          unidadId: p.unidad_id ?? "",
+          soyJefe: p.solicitud_jefe === "pendiente",
         });
       }
       setInitial(false);
@@ -120,7 +122,8 @@ function Perfil() {
         nombre: parsed.data.nombre,
         apellido: parsed.data.apellido,
         dni: parsed.data.dni,
-        area_id: parsed.data.areaId,
+        unidad_id: parsed.data.unidadId,
+        ...(parsed.data.soyJefe && !esJefe ? { solicitud_jefe: "pendiente" as const } : {}),
         perfil_completo: true,
       })
       .eq("id", u.user.id);
@@ -134,6 +137,7 @@ function Perfil() {
       return;
     }
     toast.success("Perfil actualizado");
+    if (parsed.data.soyJefe && !esJefe) setSolicitudJefe("pendiente");
     navigate({ to: profileComplete ? "/perfil" : "/nueva-solicitud" });
   };
 
@@ -191,64 +195,48 @@ function Perfil() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="area">Área o dependencia</Label>
-              <Popover open={areaOpen} onOpenChange={setAreaOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="area"
-                    type="button"
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={areaOpen}
-                    disabled={initial}
-                    className="w-full justify-between font-normal"
-                  >
-                    {areas.find((area) => area.id === form.areaId)?.nombre_corto ??
-                      "Seleccioná un área"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[var(--radix-popover-trigger-width)] p-0"
-                  align="start"
-                >
-                  <Command
-                    filter={(value, search) => {
-                      const area = areas.find((option) => option.id === value);
-                      return area &&
-                        normalize(`${area.nombre_corto} ${area.nombre_completo}`).includes(
-                          normalize(search),
-                        )
-                        ? 1
-                        : 0;
-                    }}
-                  >
-                    <CommandInput placeholder="Buscar área..." />
-                    <CommandList>
-                      <CommandEmpty>No se encontraron áreas.</CommandEmpty>
-                      {areas.map((area) => (
-                        <CommandItem
-                          key={area.id}
-                          value={area.id}
-                          onSelect={() => {
-                            setForm({ ...form, areaId: area.id });
-                            setAreaOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={
-                              form.areaId === area.id
-                                ? "mr-2 h-4 w-4 opacity-100"
-                                : "mr-2 h-4 w-4 opacity-0"
-                            }
-                          />
-                          {area.nombre_corto}
-                        </CommandItem>
-                      ))}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Label>Unidad</Label>
+              <UnidadSelector
+                unidades={unidades}
+                value={form.unidadId}
+                onValueChange={(unidadId) => setForm((current) => ({ ...current, unidadId }))}
+                disabled={initial || esJefe}
+              />
+              {esJefe && (
+                <p className="text-xs text-muted-foreground">
+                  Para cambiar tu unidad, contactá a un administrador mientras tu jefatura esté
+                  aprobada.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              {esJefe ? (
+                <p className="text-sm text-primary">Tu jefatura está aprobada.</p>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="solicitar-jefatura"
+                    checked={form.soyJefe || solicitudJefe === "pendiente"}
+                    disabled={initial || solicitudJefe === "pendiente"}
+                    onCheckedChange={(checked) =>
+                      setForm((current) => ({ ...current, soyJefe: checked === true }))
+                    }
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="solicitar-jefatura">Soy jefe/a de esta unidad</Label>
+                    {solicitudJefe === "pendiente" && (
+                      <p className="text-xs text-muted-foreground">
+                        Solicitud pendiente de aprobación.
+                      </p>
+                    )}
+                    {solicitudJefe === "rechazada" && (
+                      <p className="text-xs text-destructive">
+                        La solicitud fue rechazada. Podés volver a solicitarla.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" className="w-full sm:w-auto" disabled={loading || initial}>

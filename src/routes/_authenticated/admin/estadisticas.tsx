@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getUnidadDescendantIds, type UnidadNode } from "@/lib/unidades";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import {
@@ -19,7 +20,7 @@ import {
   Legend,
   LabelList,
 } from "recharts";
-import { BarChart3, Download, X } from "lucide-react";
+import { BarChart3, Check, ChevronsUpDown, Download, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -29,8 +30,17 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/estadisticas")({
   head: () => ({
@@ -45,7 +55,8 @@ export const Route = createFileRoute("/_authenticated/admin/estadisticas")({
 type Sol = {
   id: string;
   usuario_id: string | null;
-  solicitante_area: string | null;
+  unidad_id: string | null;
+  unidad_nombre_snapshot: string | null;
   solicitante_nombre: string | null;
   solicitante_email: string | null;
   motivo: string;
@@ -58,6 +69,80 @@ type Sol = {
 
 const REPORT_DESKTOP_PAGE_SIZE = 10;
 const REPORT_MOBILE_PAGE_SIZE = 3;
+type ProfileUnit = { unidad_id: string | null; es_jefe: boolean };
+
+type FilterOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
+function FilterCombobox({
+  value,
+  onValueChange,
+  placeholder,
+  searchPlaceholder,
+  emptyMessage,
+  options,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  emptyMessage: string;
+  options: FilterOption[];
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className="truncate">{selected?.label ?? placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command
+          filter={(optionValue, search) => {
+            const option = options.find((candidate) => candidate.value === optionValue);
+            const searchableText = `${option?.label ?? ""} ${option?.searchText ?? ""}`;
+            return normalize(searchableText).includes(normalize(search)) ? 1 : 0;
+          }}
+        >
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {options.map((option) => (
+              <CommandItem
+                key={option.value}
+                value={option.value}
+                onSelect={() => {
+                  onValueChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={
+                    value === option.value ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"
+                  }
+                />
+                {option.label}
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function getLocalDateKey(value: string) {
   const date = new Date(value);
@@ -71,16 +156,49 @@ function escapeCsv(value: string | number) {
   return `"${String(value).replace(/"/g, '""')}"`;
 }
 
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function unitMatchesFilters(
+  dependencyId: string,
+  unitId: string,
+  assignedUnitId: string | undefined,
+  units: UnidadNode[],
+) {
+  if (!assignedUnitId) return dependencyId === "all" && unitId === "all";
+  const matchesDependency =
+    dependencyId === "all" || getUnidadDescendantIds(dependencyId, units).has(assignedUnitId);
+  return matchesDependency && (unitId === "all" || assignedUnitId === unitId);
+}
+
+function getTicketUnitLabel(
+  item: Sol,
+  profilesByUser: Map<string, ProfileUnit>,
+  unitsById: Map<string, UnidadNode>,
+) {
+  const profile = item.usuario_id ? profilesByUser.get(item.usuario_id) : undefined;
+  const unitId = item.unidad_id ?? profile?.unidad_id;
+  const unit = unitId ? unitsById.get(unitId) : undefined;
+  if (profile?.es_jefe && unit) return unit.cargo_jefe;
+  return item.unidad_nombre_snapshot ?? unit?.ruta ?? "Sin unidad";
+}
+
 function Estadisticas() {
   const isMobile = useIsMobile();
   const reportPageSize = isMobile ? REPORT_MOBILE_PAGE_SIZE : REPORT_DESKTOP_PAGE_SIZE;
   const [items, setItems] = useState<Sol[]>([]);
-  const [areas, setAreas] = useState<Map<string, string>>(new Map());
-  const [areaOptions, setAreaOptions] = useState<string[]>([]);
+  const [profilesByUser, setProfilesByUser] = useState<Map<string, ProfileUnit>>(new Map());
+  const [unitOptions, setUnitOptions] = useState<UnidadNode[]>([]);
+  const [dependencyFilter, setDependencyFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
+  const [reportDependency, setReportDependency] = useState("all");
   const [reportArea, setReportArea] = useState("all");
   const [reportStatus, setReportStatus] = useState("all");
   const [reportUrgency, setReportUrgency] = useState("all");
@@ -88,56 +206,52 @@ function Estadisticas() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data }, { data: catalogAreas }] = await Promise.all([
-        supabase
-          .from("solicitudes")
-          .select(
-            "id, usuario_id, solicitante_area, solicitante_nombre, solicitante_email, motivo, descripcion, urgencia, estado, fecha_creacion, fecha_finalizacion",
-          )
-          .order("fecha_creacion", { ascending: true }),
-        supabase.from("areas").select("id, nombre_corto").order("nombre_corto"),
-      ]);
+      const [{ data, error: requestsError }, { data: catalogUnits, error: unitsError }] =
+        await Promise.all([
+          supabase
+            .from("solicitudes")
+            .select(
+              "id, usuario_id, unidad_id, unidad_nombre_snapshot, solicitante_nombre, solicitante_email, motivo, descripcion, urgencia, estado, fecha_creacion, fecha_finalizacion",
+            )
+            .order("fecha_creacion", { ascending: true }),
+          supabase.from("unidades_arbol").select("*").order("orden"),
+        ]);
+      if (requestsError) {
+        toast.error(`No se pudieron cargar las solicitudes: ${requestsError.message}`);
+        return;
+      }
+      if (unitsError) {
+        toast.error(
+          `No se pudo cargar el organigrama: ${unitsError.message}. Aplicá las migraciones de unidades en Supabase.`,
+        );
+        return;
+      }
       const list = (data as Sol[]) ?? [];
+      const catalog = (catalogUnits ?? []) as UnidadNode[];
       setItems(list);
-      setAreaOptions((catalogAreas ?? []).map((area) => area.nombre_corto));
+      setUnitOptions(catalog);
       const ids = Array.from(
         new Set(list.map((s) => s.usuario_id).filter((id): id is string => Boolean(id))),
       );
       if (ids.length) {
-        const { data: profs } = await supabase
+        const { data: profs, error: profilesError } = await supabase
           .from("profiles")
-          .select("id, area, area_id")
+          .select("id, unidad_id, es_jefe")
           .in("id", ids);
-        const areaIds = Array.from(
-          new Set(
-            (profs ?? [])
-              .map((profile) => profile.area_id)
-              .filter((id): id is string => Boolean(id)),
+        if (profilesError) {
+          toast.error(`No se pudieron cargar los perfiles: ${profilesError.message}`);
+          return;
+        }
+        setProfilesByUser(
+          new Map(
+            (profs ?? []).map((profile) => [
+              profile.id,
+              { unidad_id: profile.unidad_id, es_jefe: profile.es_jefe },
+            ]),
           ),
         );
-        const { data: areaRows } = areaIds.length
-          ? await supabase.from("areas").select("id, nombre_corto").in("id", areaIds)
-          : { data: [] };
-        const areaMap = new Map((areaRows ?? []).map((area) => [area.id, area.nombre_corto]));
-        const areaMapByUser = new Map(
-          (profs ?? []).map((p) => [
-            p.id,
-            p.area_id ? (areaMap.get(p.area_id) ?? p.area ?? "Sin área") : (p.area ?? "Sin área"),
-          ]),
-        );
-        // Crear mapa con IDs de usuarios y sus áreas, usando snapshot como fallback
-        const allAreas = new Map<string, string>();
-        list.forEach((s) => {
-          if (s.usuario_id) {
-            allAreas.set(
-              s.usuario_id,
-              areaMapByUser.get(s.usuario_id) ?? s.solicitante_area ?? "Sin área",
-            );
-          }
-        });
-        setAreas(allAreas);
       } else {
-        setAreas(new Map());
+        setProfilesByUser(new Map());
       }
     };
     load();
@@ -156,44 +270,115 @@ function Estadisticas() {
     }));
   }, [items]);
 
+  const dependencyOptions = useMemo(
+    () =>
+      unitOptions.filter((unit) => unitOptions.some((candidate) => candidate.padre_id === unit.id)),
+    [unitOptions],
+  );
+  const chartUnitOptions = useMemo(
+    () =>
+      dependencyFilter === "all"
+        ? unitOptions
+        : unitOptions.filter((unit) =>
+            getUnidadDescendantIds(dependencyFilter, unitOptions).has(unit.id),
+          ),
+    [unitOptions, dependencyFilter],
+  );
+  const reportUnitOptions = useMemo(
+    () =>
+      reportDependency === "all"
+        ? unitOptions
+        : unitOptions.filter((unit) =>
+            getUnidadDescendantIds(reportDependency, unitOptions).has(unit.id),
+          ),
+    [unitOptions, reportDependency],
+  );
+  const dependencyFilterOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: "all", label: "Todas las dependencias" },
+      ...dependencyOptions.map((unit) => ({
+        value: unit.id,
+        label: unit.ruta,
+        searchText: unit.ruta,
+      })),
+    ],
+    [dependencyOptions],
+  );
+  const chartUnitFilterOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: "all", label: "Todas las unidades" },
+      ...chartUnitOptions.map((unit) => ({
+        value: unit.id,
+        label: unit.nombre,
+        searchText: unit.ruta,
+      })),
+    ],
+    [chartUnitOptions],
+  );
+  const reportDependencyFilterOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: "all", label: "Todas las dependencias" },
+      ...dependencyOptions.map((unit) => ({
+        value: unit.id,
+        label: unit.ruta,
+        searchText: unit.ruta,
+      })),
+    ],
+    [dependencyOptions],
+  );
+  const reportUnitFilterOptions = useMemo<FilterOption[]>(
+    () => [
+      { value: "all", label: "Todas las unidades" },
+      ...reportUnitOptions.map((unit) => ({
+        value: unit.id,
+        label: unit.nombre,
+        searchText: unit.ruta,
+      })),
+    ],
+    [reportUnitOptions],
+  );
+  const unitsById = useMemo(
+    () => new Map(unitOptions.map((unit) => [unit.id, unit])),
+    [unitOptions],
+  );
+
   const filteredItems = useMemo(
     () =>
       items.filter((item) => {
-        const matchesArea =
-          areaFilter === "all" || (areas.get(item.usuario_id) ?? "Sin área") === areaFilter;
+        const assignedUnitId =
+          item.unidad_id ??
+          (item.usuario_id ? profilesByUser.get(item.usuario_id)?.unidad_id : undefined);
+        const matchesUnit = unitMatchesFilters(
+          dependencyFilter,
+          areaFilter,
+          assignedUnitId ?? undefined,
+          unitOptions,
+        );
         const matchesMonth =
           monthFilter === "all" || item.fecha_creacion.slice(0, 7) === monthFilter;
-        return matchesArea && matchesMonth;
+        return matchesUnit && matchesMonth;
       }),
-    [items, areas, areaFilter, monthFilter],
-  );
-
-  const reportAreaOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          items.map((item) =>
-            item.usuario_id
-              ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-              : (item.solicitante_area ?? "Sin área"),
-          ),
-        ),
-      ).sort((a, b) => a.localeCompare(b, "es")),
-    [items, areas],
+    [items, profilesByUser, unitOptions, dependencyFilter, areaFilter, monthFilter],
   );
 
   const reportItems = useMemo(
     () =>
       items
         .filter((item) => {
-          const area = item.usuario_id
-            ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-            : (item.solicitante_area ?? "Sin área");
+          const assignedUnitId =
+            item.unidad_id ??
+            (item.usuario_id ? profilesByUser.get(item.usuario_id)?.unidad_id : undefined);
+          const matchesUnit = unitMatchesFilters(
+            reportDependency,
+            reportArea,
+            assignedUnitId ?? undefined,
+            unitOptions,
+          );
           const date = getLocalDateKey(item.fecha_creacion);
           return (
             (!reportStartDate || date >= reportStartDate) &&
             (!reportEndDate || date <= reportEndDate) &&
-            (reportArea === "all" || area === reportArea) &&
+            matchesUnit &&
             (reportStatus === "all" || item.estado === reportStatus) &&
             (reportUrgency === "all" || item.urgencia === reportUrgency)
           );
@@ -201,12 +386,30 @@ function Estadisticas() {
         .sort(
           (a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime(),
         ),
-    [items, areas, reportStartDate, reportEndDate, reportArea, reportStatus, reportUrgency],
+    [
+      items,
+      profilesByUser,
+      unitOptions,
+      reportStartDate,
+      reportEndDate,
+      reportDependency,
+      reportArea,
+      reportStatus,
+      reportUrgency,
+    ],
   );
 
   useEffect(() => {
     setReportPage(1);
-  }, [reportStartDate, reportEndDate, reportArea, reportStatus, reportUrgency, isMobile]);
+  }, [
+    reportStartDate,
+    reportEndDate,
+    reportDependency,
+    reportArea,
+    reportStatus,
+    reportUrgency,
+    isMobile,
+  ]);
 
   const reportTotalPages = Math.ceil(reportItems.length / reportPageSize);
   const paginatedReportItems = reportItems.slice(
@@ -220,7 +423,7 @@ function Estadisticas() {
       "Fecha",
       "Solicitante",
       "Correo",
-      "Área",
+      "Unidad",
       "Motivo",
       "Descripción",
       "Urgencia",
@@ -231,9 +434,7 @@ function Estadisticas() {
       new Date(item.fecha_creacion).toLocaleString("es-AR"),
       item.solicitante_nombre ?? "—",
       item.solicitante_email ?? "—",
-      item.usuario_id
-        ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-        : (item.solicitante_area ?? "Sin área"),
+      getTicketUnitLabel(item, profilesByUser, unitsById),
       item.motivo,
       item.descripcion,
       item.urgencia === "urgente" ? "Urgente" : "Normal",
@@ -263,17 +464,17 @@ function Estadisticas() {
       }));
   }, [filteredItems]);
 
-  const porArea = useMemo(() => {
+  const porUnidad = useMemo(() => {
     const map = new Map<string, number>();
     filteredItems.forEach((s) => {
-      const a = s.usuario_id ? (areas.get(s.usuario_id) ?? "—") : (s.solicitante_area ?? "—");
-      map.set(a, (map.get(a) ?? 0) + 1);
+      const unidad = getTicketUnitLabel(s, profilesByUser, unitsById);
+      map.set(unidad, (map.get(unidad) ?? 0) + 1);
     });
     return Array.from(map.entries())
-      .map(([area, cantidad]) => ({ area, cantidad }))
+      .map(([unidad, cantidad]) => ({ unidad, cantidad }))
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 8);
-  }, [filteredItems, areas]);
+  }, [filteredItems, profilesByUser, unitsById]);
 
   const urgencias = useMemo(() => {
     const urgentes = filteredItems.filter((s) => s.urgencia === "urgente").length;
@@ -320,29 +521,75 @@ function Estadisticas() {
         </div>
       </div>
 
+      <Card className="mb-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Dependencia para gráficos (incluye subordinadas)
+            </label>
+            <FilterCombobox
+              value={dependencyFilter}
+              onValueChange={(value) => {
+                setDependencyFilter(value);
+                setAreaFilter("all");
+              }}
+              placeholder="Todas las dependencias"
+              searchPlaceholder="Buscar dependencia..."
+              emptyMessage="No se encontraron dependencias."
+              options={dependencyFilterOptions}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Unidad para gráficos
+            </label>
+            <FilterCombobox
+              value={areaFilter}
+              onValueChange={setAreaFilter}
+              placeholder="Todas las unidades"
+              searchPlaceholder="Buscar unidad o dependencia..."
+              emptyMessage="No se encontraron unidades."
+              options={chartUnitFilterOptions}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Mes para gráficos
+            </label>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los meses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los meses</SelectItem>
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="self-end"
+            onClick={() => {
+              setDependencyFilter("all");
+              setAreaFilter("all");
+              setMonthFilter("all");
+            }}
+            disabled={dependencyFilter === "all" && areaFilter === "all" && monthFilter === "all"}
+          >
+            <X className="mr-2 h-4 w-4" />
+            Limpiar filtros
+          </Button>
+        </div>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="text-sm font-semibold">Solicitudes por día (últimos 14 días)</h2>
-            <div className="w-full sm:w-48">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Filtrar por mes
-              </label>
-              <Select modal={false} value={monthFilter} onValueChange={setMonthFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos los meses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los meses</SelectItem>
-                  {monthOptions.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <h2 className="mb-4 text-sm font-semibold">Solicitudes por día (últimos 14 días)</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={porDia} margin={{ top: 16 }}>
@@ -381,30 +628,10 @@ function Estadisticas() {
         </Card>
 
         <Card className="p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="text-sm font-semibold">Solicitudes por área</h2>
-            <div className="w-full sm:w-48">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Filtrar por área
-              </label>
-              <Select modal={false} value={areaFilter} onValueChange={setAreaFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas las áreas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las áreas</SelectItem>
-                  {areaOptions.map((area) => (
-                    <SelectItem key={area} value={area}>
-                      {area}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <h2 className="mb-4 text-sm font-semibold">Solicitudes por unidad</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={porArea} layout="vertical" margin={{ right: 24 }}>
+              <BarChart data={porUnidad} layout="vertical" margin={{ right: 24 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.02 160)" />
                 <XAxis
                   type="number"
@@ -413,7 +640,7 @@ function Estadisticas() {
                   allowDecimals={false}
                 />
                 <YAxis
-                  dataKey="area"
+                  dataKey="unidad"
                   type="category"
                   stroke="oklch(0.68 0.02 155)"
                   fontSize={12}
@@ -563,7 +790,7 @@ function Estadisticas() {
             </Button>
           </div>
 
-          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
             <div>
               <label
                 htmlFor="report-start-date"
@@ -597,26 +824,39 @@ function Estadisticas() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Área</label>
-              <Select modal={false} value={reportArea} onValueChange={setReportArea}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las áreas</SelectItem>
-                  {reportAreaOptions.map((area) => (
-                    <SelectItem key={area} value={area}>
-                      {area}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Dependencia (incluye subordinadas)
+              </label>
+              <FilterCombobox
+                value={reportDependency}
+                onValueChange={(value) => {
+                  setReportDependency(value);
+                  setReportArea("all");
+                }}
+                placeholder="Todas las dependencias"
+                searchPlaceholder="Buscar dependencia..."
+                emptyMessage="No se encontraron dependencias."
+                options={reportDependencyFilterOptions}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Unidad
+              </label>
+              <FilterCombobox
+                value={reportArea}
+                onValueChange={setReportArea}
+                placeholder="Todas las unidades"
+                searchPlaceholder="Buscar unidad o dependencia..."
+                emptyMessage="No se encontraron unidades."
+                options={reportUnitFilterOptions}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Estado
               </label>
-              <Select modal={false} value={reportStatus} onValueChange={setReportStatus}>
+              <Select value={reportStatus} onValueChange={setReportStatus}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -635,7 +875,7 @@ function Estadisticas() {
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Urgencia
               </label>
-              <Select modal={false} value={reportUrgency} onValueChange={setReportUrgency}>
+              <Select value={reportUrgency} onValueChange={setReportUrgency}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -653,6 +893,7 @@ function Estadisticas() {
               onClick={() => {
                 setReportStartDate("");
                 setReportEndDate("");
+                setReportDependency("all");
                 setReportArea("all");
                 setReportStatus("all");
                 setReportUrgency("all");
@@ -660,6 +901,7 @@ function Estadisticas() {
               disabled={
                 !reportStartDate &&
                 !reportEndDate &&
+                reportDependency === "all" &&
                 reportArea === "all" &&
                 reportStatus === "all" &&
                 reportUrgency === "all"
@@ -676,7 +918,7 @@ function Estadisticas() {
                 <tr>
                   <th className="px-3 py-2 font-medium">Fecha</th>
                   <th className="px-3 py-2 font-medium">Solicitante</th>
-                  <th className="px-3 py-2 font-medium">Área</th>
+                  <th className="px-3 py-2 font-medium">Unidad</th>
                   <th className="px-3 py-2 font-medium">Motivo</th>
                   <th className="px-3 py-2 font-medium">Urgencia</th>
                   <th className="px-3 py-2 font-medium">Estado</th>
@@ -692,9 +934,7 @@ function Estadisticas() {
                       {item.solicitante_nombre ?? item.solicitante_email ?? "—"}
                     </td>
                     <td className="px-3 py-2">
-                      {item.usuario_id
-                        ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-                        : (item.solicitante_area ?? "Sin área")}
+                      {getTicketUnitLabel(item, profilesByUser, unitsById)}
                     </td>
                     <td className="max-w-xs truncate px-3 py-2" title={item.motivo}>
                       {item.motivo}
@@ -737,11 +977,9 @@ function Estadisticas() {
                 )}
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                   <div>
-                    <dt className="text-xs text-muted-foreground">Área</dt>
+                    <dt className="text-xs text-muted-foreground">Unidad</dt>
                     <dd className="break-words">
-                      {item.usuario_id
-                        ? (areas.get(item.usuario_id) ?? item.solicitante_area ?? "Sin área")
-                        : (item.solicitante_area ?? "Sin área")}
+                      {getTicketUnitLabel(item, profilesByUser, unitsById)}
                     </dd>
                   </div>
                   <div>

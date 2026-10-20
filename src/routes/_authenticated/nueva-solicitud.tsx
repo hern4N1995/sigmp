@@ -30,7 +30,14 @@ const schema = z.object({
 
 function NuevaSolicitud() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<{ nombre: string; apellido: string; area: string; perfil_completo: boolean } | null>(null);
+  const [profile, setProfile] = useState<{
+    nombre: string;
+    apellido: string;
+    unidad_id: string | null;
+    unidad_nombre_snapshot: string;
+    unidad_display: string;
+    perfil_completo: boolean;
+  } | null>(null);
   const [motivo, setMotivo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [urgencia, setUrgencia] = useState<"urgente" | "normal">("normal");
@@ -39,23 +46,35 @@ function NuevaSolicitud() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-      const { data: p } = await supabase
+      const { data: p, error: profileError } = await supabase
         .from("profiles")
-        .select("nombre, apellido, area, area_id, perfil_completo")
+        .select("nombre, apellido, unidad_id, es_jefe, perfil_completo")
         .eq("id", data.user.id)
         .maybeSingle();
+      if (profileError) {
+        toast.error(`No se pudo cargar tu perfil: ${profileError.message}`);
+        return;
+      }
       if (p && !p.perfil_completo) {
         navigate({ to: "/completar-perfil", replace: true });
         return;
       }
-      const { data: area } = p?.area_id
-        ? await supabase.from("areas").select("nombre_corto").eq("id", p.area_id).maybeSingle()
-        : { data: null };
+      const { data: unidades, error: unitsError } = await supabase
+        .from("unidades_arbol")
+        .select("id, nombre, ruta, cargo_jefe")
+        .eq("id", p?.unidad_id ?? "");
+      if (unitsError) {
+        toast.error(`No se pudo cargar tu unidad: ${unitsError.message}`);
+        return;
+      }
+      const unidad = unidades?.[0];
       setProfile({
         nombre: p?.nombre ?? "",
         apellido: p?.apellido ?? "",
+        unidad_id: p?.unidad_id ?? null,
+        unidad_nombre_snapshot: unidad?.nombre ?? "",
+        unidad_display: p?.es_jefe ? (unidad?.cargo_jefe ?? "") : (unidad?.ruta ?? ""),
         perfil_completo: p?.perfil_completo ?? false,
-        area: area?.nombre_corto ?? p?.area ?? "",
       });
     });
   }, [navigate]);
@@ -69,9 +88,23 @@ function NuevaSolicitud() {
     }
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
+    if (!u.user) {
+      setLoading(false);
+      toast.error("No se pudo identificar tu sesión. Iniciá sesión nuevamente.");
+      return;
+    }
+    if (!profile?.unidad_id || !profile.unidad_nombre_snapshot) {
+      setLoading(false);
+      toast.error(
+        "Completá tu perfil y seleccioná una unidad activa antes de enviar una solicitud.",
+      );
+      navigate({ to: "/completar-perfil" });
+      return;
+    }
     const { error } = await supabase.from("solicitudes").insert({
       usuario_id: u.user.id,
+      unidad_id: profile.unidad_id,
+      unidad_nombre_snapshot: profile.unidad_nombre_snapshot,
       ...parsed.data,
     });
     setLoading(false);
@@ -92,7 +125,9 @@ function NuevaSolicitud() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Nueva solicitud</h1>
-            <p className="text-sm text-muted-foreground">Describí el problema y el equipo de Sistemas lo tomará.</p>
+            <p className="text-sm text-muted-foreground">
+              Describí el problema y el equipo de Sistemas lo tomará.
+            </p>
           </div>
         </div>
 
@@ -108,8 +143,8 @@ function NuevaSolicitud() {
                 <Input value={profile?.apellido ?? ""} disabled />
               </div>
               <div className="space-y-1.5">
-                <Label>Área</Label>
-                <Input value={profile?.area ?? ""} disabled />
+                <Label>Unidad</Label>
+                <Input value={profile?.unidad_display ?? ""} disabled />
               </div>
             </div>
 
@@ -145,14 +180,18 @@ function NuevaSolicitud() {
                 onValueChange={(v) => setUrgencia(v as "urgente" | "normal")}
                 className="grid grid-cols-2 gap-3"
               >
-                <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${urgencia === "normal" ? "border-primary bg-primary/10" : "border-border"}`}>
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${urgencia === "normal" ? "border-primary bg-primary/10" : "border-border"}`}
+                >
                   <RadioGroupItem value="normal" />
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Normal</span>
                   </div>
                 </label>
-                <label className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${urgencia === "urgente" ? "border-destructive bg-destructive/10" : "border-border"}`}>
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${urgencia === "urgente" ? "border-destructive bg-destructive/10" : "border-border"}`}
+                >
                   <RadioGroupItem value="urgente" />
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" />
