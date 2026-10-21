@@ -13,6 +13,16 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY \
     VITE_SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
 
+# Frena el build si faltan las variables, en lugar de generar una imagen que
+# falla en el navegador con "Missing Supabase environment variable(s)".
+RUN if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then \
+      echo ""; \
+      echo "ERROR: faltan VITE_SUPABASE_URL y/o VITE_SUPABASE_PUBLISHABLE_KEY."; \
+      echo "Cargá \$buildArgs desde el .env (debe dar 6) y pasalo con @buildArgs."; \
+      echo ""; \
+      exit 1; \
+    fi
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
