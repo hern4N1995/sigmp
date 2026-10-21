@@ -2,13 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { UserCircle, User as UserIcon, KeyRound, Loader2 } from "lucide-react";
+import { UserCircle, User as UserIcon, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
@@ -36,6 +39,7 @@ function MiPerfil() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
@@ -97,22 +101,36 @@ function MiPerfil() {
         cargo_jefe: unidad?.cargo_jefe ?? null,
       });
     };
-    loadProfile();
+    void loadProfile()
+      .catch((error: unknown) => {
+        console.error("No se pudo cargar el perfil.", error);
+        toast.error("No se pudo cargar tu perfil. Intentá nuevamente.");
+      })
+      .finally(() => setProfileLoading(false));
   }, [user]);
 
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <UserCircle className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Mi perfil</h1>
-            <p className="text-sm text-muted-foreground">Información de tu cuenta.</p>
-          </div>
-        </div>
+        <PageHeader title="Mi perfil" description="Información de tu cuenta." icon={UserCircle} />
 
+        {profileLoading ? (
+          <Card className="space-y-5 p-6" aria-label="Cargando perfil">
+            <div className="flex items-center gap-4">
+              <Skeleton className="size-16 rounded-full" />
+              <Skeleton className="h-6 w-40" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <>
         <Card className="p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -217,12 +235,14 @@ function MiPerfil() {
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={updatingPassword}>
-                {updatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Actualizar contraseña
+                {updatingPassword && <Spinner size="sm" />}
+                {updatingPassword ? "Actualizando…" : "Actualizar contraseña"}
               </Button>
             </div>
           </form>
         </Card>
+          </>
+        )}
       </div>
     </AppShell>
   );

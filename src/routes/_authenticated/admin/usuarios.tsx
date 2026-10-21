@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UnidadSelector, type UnidadOption } from "@/components/unidad-selector";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,15 +16,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Pencil, Loader2, Search, X } from "lucide-react";
+import { Users, Pencil, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/empty-state";
 
 type Role = "administrador" | "empleado";
 type UnidadOptionWithCargo = UnidadOption & { cargo_jefe: string };
@@ -228,17 +242,11 @@ function UsuariosPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Users className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Usuarios</h1>
-          <p className="text-sm text-muted-foreground">
-            Administrá los usuarios y roles del sistema.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Usuarios"
+        description="Administrá los usuarios y roles del sistema."
+        icon={Users}
+      />
 
       <Card className="mb-4 p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto] lg:items-end">
@@ -308,15 +316,47 @@ function UsuariosPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                    <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                  </td>
-                </tr>
+                Array.from({ length: 7 }, (_, row) => (
+                  <tr key={row} className="border-t border-border">
+                    {Array.from({ length: 7 }, (_, cell) => (
+                      <td key={cell} className="px-4 py-4">
+                        <Skeleton className={`h-4 ${cell === 2 ? "w-full" : "w-3/4"}`} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                    {rows.length === 0 ? "Sin usuarios." : "No hay usuarios para estos filtros."}
+                  <td colSpan={7} className="p-0">
+                    <EmptyState
+                      title={
+                        rows.length === 0
+                          ? "Todavía no hay usuarios"
+                          : "No hay resultados para estos filtros"
+                      }
+                      description={
+                        rows.length === 0
+                          ? "Los usuarios aparecerán en esta lista cuando se registren."
+                          : "Probá con otros términos o limpiá los filtros."
+                      }
+                      icon={Users}
+                      action={
+                        rows.length > 0 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSearch("");
+                              setCreatedFrom("");
+                              setCreatedTo("");
+                            }}
+                          >
+                            Limpiar filtros
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -370,13 +410,43 @@ function UsuariosPage() {
         </div>
         <div className="grid gap-3 p-3 md:hidden">
           {loading ? (
-            <div className="py-10 text-center text-muted-foreground">
-              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-            </div>
+            Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className="space-y-3 rounded-lg border border-border p-4">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))
           ) : filteredRows.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {rows.length === 0 ? "Sin usuarios." : "No hay usuarios para estos filtros."}
-            </p>
+            <EmptyState
+              title={
+                rows.length === 0
+                  ? "Todavía no hay usuarios"
+                  : "No hay resultados para estos filtros"
+              }
+              description={
+                rows.length === 0
+                  ? "Los usuarios aparecerán en esta lista cuando se registren."
+                  : "Probá con otros términos o limpiá los filtros."
+              }
+              icon={Users}
+              action={
+                rows.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearch("");
+                      setCreatedFrom("");
+                      setCreatedTo("");
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             pageRows.map((r) => (
               <div key={r.id} className="min-w-0 rounded-lg border border-border bg-card p-4">
@@ -537,33 +607,41 @@ function UsuariosPage() {
               Cancelar
             </Button>
             <Button onClick={save} disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar cambios
+              {saving && <Spinner size="sm" />}
+              {saving ? "Guardando…" : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pendingDeletion} onOpenChange={(open) => !open && setPendingDeletion(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Eliminar usuario</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+      <AlertDialog
+        open={!!pendingDeletion}
+        onOpenChange={(open) => !open && !deleting && setPendingDeletion(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar usuario</AlertDialogTitle>
+            <AlertDialogDescription>
             ¿Eliminar a {pendingDeletion?.nombre} {pendingDeletion?.apellido} (
             {pendingDeletion?.email})? Esta acción no se puede deshacer.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingDeletion(null)} disabled={deleting}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={() => void removeUser()} disabled={deleting}>
-              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Eliminar usuario
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void removeUser();
+              }}
+            >
+              {deleting && <Spinner size="sm" />}
+              {deleting ? "Eliminando…" : "Eliminar usuario"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

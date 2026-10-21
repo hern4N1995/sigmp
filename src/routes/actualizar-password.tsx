@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/actualizar-password")({
   head: () => ({ meta: [{ title: "Actualizar contraseña - SIG" }] }),
@@ -35,8 +37,10 @@ function UpdatePasswordPage() {
 
     if (updateError) {
       setError(updateError.message);
+      toast.error("No se pudo actualizar la contraseña.");
     } else {
       setUpdated(true);
+      toast.success("La contraseña se actualizó correctamente.");
     }
     setLoading(false);
   };
@@ -86,8 +90,8 @@ function UpdatePasswordPage() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Actualizar contraseña
+              {loading && <Spinner size="sm" />}
+              {loading ? "Actualizando…" : "Actualizar contraseña"}
             </Button>
           </form>
         )}

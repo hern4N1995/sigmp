@@ -8,29 +8,35 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import { AlertTriangle, Home, RotateCcw } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
+import { RouterProgress } from "@/components/router-progress";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+      <section className="w-full max-w-md rounded-lg border bg-card p-8 text-center shadow-lg">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <AlertTriangle className="size-6" aria-hidden="true" />
+        </div>
+        <h1 className="mt-5 text-5xl font-bold text-foreground">404</h1>
+        <h2 className="mt-3 text-xl font-semibold text-foreground">Página no encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          La página que buscás no existe o fue movida.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Go home
+            <Home className="size-4" aria-hidden="true" />
+            Ir al inicio
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -41,31 +47,41 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+      <section className="w-full max-w-md rounded-lg border bg-card p-8 text-center shadow-lg">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <AlertTriangle className="size-6" aria-hidden="true" />
+        </div>
+        <h1 className="mt-5 text-xl font-semibold tracking-tight text-foreground">
+          No pudimos cargar esta página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Ocurrió un problema inesperado. Podés intentar cargarla nuevamente o volver al inicio.
         </p>
+        {import.meta.env.DEV && (
+          <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
+            {error.message}
+          </pre>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Try again
+            <RotateCcw className="size-4" aria-hidden="true" />
+            Reintentar
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          <Link
+            to="/"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Go home
-          </a>
+            <Home className="size-4" aria-hidden="true" />
+            Ir al inicio
+          </Link>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -269,6 +285,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <RouterProgress />
       {showStartupSplash && (
         <div className="app-startup-splash" aria-hidden="true">
           <div className="app-startup-brand">

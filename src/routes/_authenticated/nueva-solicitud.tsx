@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, PlusCircle, AlertTriangle, Info } from "lucide-react";
+import { PlusCircle, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/_authenticated/nueva-solicitud")({
   head: () => ({
@@ -119,17 +121,11 @@ function NuevaSolicitud() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <PlusCircle className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Nueva solicitud</h1>
-            <p className="text-sm text-muted-foreground">
-              Describí el problema y el equipo de Sistemas lo tomará.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Nueva solicitud"
+          description="Describí el problema y el equipo de Sistemas lo tomará."
+          icon={PlusCircle}
+        />
 
         <Card className="p-6">
           <form onSubmit={submit} className="space-y-5">
@@ -202,8 +198,8 @@ function NuevaSolicitud() {
             </div>
 
             <Button type="submit" className="w-full sm:w-auto" disabled={loading || !profile}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar solicitud
+              {loading && <Spinner size="sm" />}
+              {loading ? "Enviando solicitud…" : "Enviar solicitud"}
             </Button>
           </form>
         </Card>

@@ -21,6 +21,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,9 @@ function useTheme() {
     setTheme(initial);
     document.documentElement.classList.toggle("light", initial === "light");
     document.documentElement.classList.toggle("dark", initial === "dark");
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", initial === "light" ? "#f7faf8" : "#08120c");
   }, []);
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -45,6 +50,9 @@ function useTheme() {
     localStorage.setItem("theme", next);
     document.documentElement.classList.toggle("light", next === "light");
     document.documentElement.classList.toggle("dark", next === "dark");
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", next === "light" ? "#f7faf8" : "#08120c");
   };
   return { theme, toggle };
 }
@@ -56,6 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(0);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const previousPending = useRef<number | null>(null);
   const notificationActive = useRef(false);
@@ -157,8 +166,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    setLoggingOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success("Sesión cerrada.");
+      await navigate({ to: "/auth", replace: true });
+    } catch (error) {
+      console.error("No se pudo cerrar la sesión.", error);
+      toast.error("No se pudo cerrar la sesión. Intentá nuevamente.");
+      setLoggingOut(false);
+    }
   };
 
   const empLinks = [
@@ -252,9 +270,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleLogout}
+          disabled={loggingOut}
           className="text-destructive focus:text-destructive"
         >
-          <LogOut className="mr-2 h-4 w-4" /> Cerrar sesión
+          {loggingOut ? <Spinner size="sm" /> : <LogOut className="mr-2 h-4 w-4" />}
+          {loggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -304,7 +324,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               aria-label="Revisar solicitudes pendientes"
               onClick={reviewNotifications}
-              className="app-shell-bell-button relative rounded-md p-1 hover:bg-accent"
+              className="app-shell-bell-button relative flex size-10 items-center justify-center rounded-md hover:bg-accent"
             >
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
@@ -345,7 +365,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               aria-label="Revisar solicitudes pendientes"
               onClick={reviewNotifications}
-              className="app-shell-bell-button relative mr-1 rounded-md p-1 hover:bg-accent"
+              className="app-shell-bell-button relative mr-1 flex size-10 items-center justify-center rounded-md hover:bg-accent"
             >
               <Bell className="h-4 w-4 text-muted-foreground" />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
@@ -354,7 +374,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           )}
           <ProfileMenu />
-          <Button variant="ghost" size="icon" onClick={() => setOpen((o) => !o)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+            aria-expanded={open}
+          >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>

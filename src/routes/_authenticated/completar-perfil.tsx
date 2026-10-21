@@ -3,15 +3,17 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { UnidadSelector } from "@/components/unidad-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, UserCircle } from "lucide-react";
+import { UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { UnidadOption } from "@/components/unidad-selector";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/_authenticated/completar-perfil")({
   head: () => ({
@@ -144,19 +146,11 @@ function Perfil() {
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <UserCircle className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {profileComplete ? "Editá tu perfil" : "Completá tu perfil"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Necesitamos estos datos para procesar tus solicitudes.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title={profileComplete ? "Editá tu perfil" : "Completá tu perfil"}
+          description="Necesitamos estos datos para procesar tus solicitudes."
+          icon={UserCircle}
+        />
         <Card className="p-6">
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -240,8 +234,12 @@ function Perfil() {
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" className="w-full sm:w-auto" disabled={loading || initial}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {profileComplete ? "Guardar cambios" : "Guardar y continuar"}
+                {loading && <Spinner size="sm" />}
+                {loading
+                  ? "Guardando…"
+                  : profileComplete
+                    ? "Guardar cambios"
+                    : "Guardar y continuar"}
               </Button>
             </div>
           </form>

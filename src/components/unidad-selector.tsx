@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -38,16 +38,15 @@ export function UnidadSelector({
   const selected = unidades.find((unidad) => unidad.id === value);
   const selectedName = selected?.ruta.split(" > ").at(-1);
 
+  useEffect(() => {
+    const dialog = triggerRef.current?.closest('[role="dialog"]');
+    setPortalContainer(dialog instanceof HTMLElement ? dialog : null);
+  }, []);
+
   return (
     <Popover
       open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          const dialog = triggerRef.current?.closest('[role="dialog"]');
-          setPortalContainer(dialog instanceof HTMLElement ? dialog : null);
-        }
-        setOpen(nextOpen);
-      }}
+      onOpenChange={setOpen}
     >
       <PopoverTrigger asChild>
         <Button
@@ -57,18 +56,20 @@ export function UnidadSelector({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full min-w-0 justify-between font-normal"
+          className="w-full min-w-0 justify-between font-normal aria-expanded:ring-2 aria-expanded:ring-ring aria-expanded:ring-offset-2"
         >
           <span className="truncate">{selectedName ?? placeholder}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         portalContainer={portalContainer}
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        collisionPadding={8}
+        className="max-h-[var(--radix-popover-content-available-height)] w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-lg p-0"
         align="start"
       >
         <Command
+          className="min-h-0"
           filter={(optionValue, search) => {
             const unidad = unidades.find((candidate) => candidate.id === optionValue);
             return unidad && normalizeText(unidad.ruta).includes(normalizeText(search)) ? 1 : 0;

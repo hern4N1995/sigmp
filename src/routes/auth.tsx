@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Footer } from "@/components/footer";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AuthLoading } from "@/components/auth-loading";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -30,31 +31,58 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState<"email" | "google" | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/", replace: true });
-    });
+    let active = true;
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          toast.error("No se pudo validar tu sesión. Intentá nuevamente.");
+          console.error("No se pudo validar la sesión al abrir el ingreso.", error);
+          return;
+        }
+        if (data.session) void navigate({ to: "/", replace: true });
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        console.error("No se pudo validar la sesión al abrir el ingreso.", error);
+        toast.error("No se pudo validar tu sesión. Intentá nuevamente.");
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const handleGoogle = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) {
+    setProcessing("google");
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) {
+        toast.error("No se pudo iniciar sesión con Google");
+        setProcessing(null);
+        return;
+      }
+      void navigate({ to: "/", replace: true });
+    } catch (error) {
+      console.error("No se pudo iniciar sesión con Google.", error);
       toast.error("No se pudo iniciar sesión con Google");
-      setLoading(false);
-      return;
+      setProcessing(null);
     }
-    navigate({ to: "/", replace: true });
   };
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setProcessing("email");
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -71,13 +99,17 @@ function AuthPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error de autenticación");
     } finally {
-      setLoading(false);
+      setProcessing(null);
     }
   };
 
+  if (checkingSession) {
+    return <AuthLoading />;
+  }
+
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
-      <div className="absolute inset-0 -z-10 opacity-40">
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <div className="absolute inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
       </div>
@@ -149,6 +181,7 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
+                disabled={processing !== null}
                 className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   mode === "signin"
                     ? "bg-background text-foreground shadow-sm"
@@ -160,6 +193,7 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
+                disabled={processing !== null}
                 className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   mode === "signup"
                     ? "bg-background text-foreground shadow-sm"
@@ -175,8 +209,9 @@ function AuthPage() {
               variant="outline"
               className="w-full"
               onClick={handleGoogle}
-              disabled={loading}
+              disabled={processing !== null}
             >
+              {processing === "google" && <Spinner size="sm" />}
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -195,7 +230,7 @@ function AuthPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continuar con Google
+              {processing === "google" ? "Redirigiendo a Google…" : "Continuar con Google"}
             </Button>
 
             <div className="relative my-5">
@@ -214,6 +249,7 @@ function AuthPage() {
                   id="email"
                   type="email"
                   required
+                  disabled={processing !== null}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="usuario@produccion.gob"
@@ -225,15 +261,20 @@ function AuthPage() {
                   id="password"
                   type="password"
                   required
+                  disabled={processing !== null}
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "signin" ? "Iniciar sesión" : "Crear cuenta"}
+              <Button type="submit" className="w-full" disabled={processing !== null}>
+                {processing === "email" && <Spinner size="sm" />}
+                {processing === "email"
+                  ? "Ingresando…"
+                  : mode === "signin"
+                    ? "Ingresar"
+                    : "Crear cuenta"}
               </Button>
             </form>
             {mode === "signin" && (

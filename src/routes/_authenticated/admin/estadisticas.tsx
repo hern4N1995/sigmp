@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUnidadDescendantIds, type UnidadNode } from "@/lib/unidades";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import {
   BarChart,
@@ -41,6 +42,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/empty-state";
 
 export const Route = createFileRoute("/_authenticated/admin/estadisticas")({
   head: () => ({
@@ -191,6 +195,8 @@ function Estadisticas() {
   const isMobile = useIsMobile();
   const reportPageSize = isMobile ? REPORT_MOBILE_PAGE_SIZE : REPORT_DESKTOP_PAGE_SIZE;
   const [items, setItems] = useState<Sol[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [profilesByUser, setProfilesByUser] = useState<Map<string, ProfileUnit>>(new Map());
   const [unitOptions, setUnitOptions] = useState<UnidadNode[]>([]);
   const [dependencyFilter, setDependencyFilter] = useState("all");
@@ -254,7 +260,12 @@ function Estadisticas() {
         setProfilesByUser(new Map());
       }
     };
-    load();
+    void load()
+      .catch((error: unknown) => {
+        console.error("No se pudieron cargar las estadísticas.", error);
+        toast.error("No se pudieron cargar las estadísticas. Intentá nuevamente.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const monthOptions = useMemo(() => {
@@ -417,7 +428,10 @@ function Estadisticas() {
     reportPage * reportPageSize,
   );
 
-  const exportReport = () => {
+  const exportReport = async () => {
+    setExporting(true);
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    try {
     const headers = [
       "ID",
       "Fecha",
@@ -447,6 +461,13 @@ function Estadisticas() {
     link.download = "informe-solicitudes.csv";
     link.click();
     URL.revokeObjectURL(url);
+      toast.success("El informe se descargó correctamente.");
+    } catch (error) {
+      console.error("No se pudo exportar el informe de solicitudes.", error);
+      toast.error("No se pudo exportar el informe. Intentá nuevamente.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const porDia = useMemo(() => {
@@ -509,17 +530,41 @@ function Estadisticas() {
     return total / r.length / 3_600_000;
   }, [filteredItems]);
 
+  if (loading) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Estadísticas"
+          description="Vista analítica de las solicitudes."
+          icon={BarChart3}
+        />
+        <div className="grid gap-4 lg:grid-cols-2" aria-label="Cargando estadísticas">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Card key={index} className="space-y-4 p-5">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-64 w-full" />
+            </Card>
+          ))}
+          <Card className="space-y-4 p-5 lg:col-span-2">
+            <Skeleton className="h-6 w-48" />
+            <div className="space-y-3">
+              {Array.from({ length: isMobile ? 3 : 7 }, (_, index) => (
+                <Skeleton key={index} className="h-10 w-full" />
+              ))}
+            </div>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <BarChart3 className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Estadísticas</h1>
-          <p className="text-sm text-muted-foreground">Vista analítica de las solicitudes.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Estadísticas"
+        description="Vista analítica de las solicitudes."
+        icon={BarChart3}
+      />
 
       <Card className="mb-4 p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
@@ -782,11 +827,11 @@ function Estadisticas() {
               type="button"
               variant="outline"
               onClick={exportReport}
-              disabled={!reportItems.length}
+              disabled={!reportItems.length || exporting}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
-              Exportar CSV
+              {exporting ? <Spinner size="sm" /> : <Download className="h-4 w-4" />}
+              {exporting ? "Exportando…" : "Exportar CSV"}
             </Button>
           </div>
 
@@ -947,8 +992,28 @@ function Estadisticas() {
                 ))}
                 {!reportItems.length && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
-                      No hay solicitudes para los filtros seleccionados.
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        title="No hay resultados para estos filtros"
+                        description="Probá con otros criterios o limpiá los filtros del informe."
+                        action={
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setReportStartDate("");
+                              setReportEndDate("");
+                              setReportDependency("all");
+                              setReportArea("all");
+                              setReportStatus("all");
+                              setReportUrgency("all");
+                            }}
+                          >
+                            Limpiar filtros
+                          </Button>
+                        }
+                      />
                     </td>
                   </tr>
                 )}
@@ -999,9 +1064,27 @@ function Estadisticas() {
               </article>
             ))}
             {!reportItems.length && (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No hay solicitudes para los filtros seleccionados.
-              </p>
+              <EmptyState
+                title="No hay resultados para estos filtros"
+                description="Probá con otros criterios o limpiá los filtros del informe."
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setReportStartDate("");
+                      setReportEndDate("");
+                      setReportDependency("all");
+                      setReportArea("all");
+                      setReportStatus("all");
+                      setReportUrgency("all");
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                }
+              />
             )}
           </div>
           {reportTotalPages > 1 && (

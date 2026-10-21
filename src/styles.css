@@ -169,6 +169,17 @@
   --chart-value-foreground: #000;
 }
 
+.light .router-progress-bar {
+  background: linear-gradient(
+    90deg,
+    #08752b 0%,
+    #478c35 36%,
+    #829f1c 82%,
+    #a9b000 92%,
+    #a9b000 100%
+  );
+}
+
 .light .app-shell-header,
 .light .app-shell-footer {
   background: linear-gradient(
@@ -419,6 +430,46 @@
   * {
     border-color: var(--color-border);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="menuitem"]:focus-visible,
+  [role="option"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+}
+
+.select-content-viewport {
+  scrollbar-width: none;
+}
+
+.select-content-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .loading-spinner {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

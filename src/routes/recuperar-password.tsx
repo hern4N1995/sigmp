@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/recuperar-password")({
   head: () => ({ meta: [{ title: "Recuperar contraseña - SIG" }] }),
@@ -38,6 +40,7 @@ function RecoverPasswordPage() {
         );
       } else {
         setSent(true);
+        toast.success("Si la dirección está registrada, recibirás un correo para recuperar la contraseña.");
       }
     } catch (requestError) {
       console.error("Error inesperado al solicitar recuperación de contraseña:", requestError);
@@ -84,8 +87,8 @@ function RecoverPasswordPage() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar enlace
+              {loading && <Spinner size="sm" />}
+              {loading ? "Enviando…" : "Enviar enlace"}
             </Button>
           </form>
         )}

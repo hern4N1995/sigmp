@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import {
   LayoutDashboard,
@@ -91,17 +93,11 @@ function AdminDashboard() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <LayoutDashboard className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Panel administrativo</h1>
-          <p className="text-sm text-muted-foreground">
-            Indicadores del servicio de soporte técnico.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Panel administrativo"
+        description="Indicadores del servicio de soporte técnico."
+        icon={LayoutDashboard}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => {
@@ -114,7 +110,11 @@ function AdminDashboard() {
                 </span>
                 <Icon className={`h-4 w-4 ${c.color}`} />
               </div>
-              <div className="text-3xl font-bold tracking-tight">{loading ? "—" : c.value}</div>
+              {loading ? (
+                <Skeleton className="h-9 w-20" />
+              ) : (
+                <div className="text-3xl font-bold tracking-tight">{c.value}</div>
+              )}
             </Card>
           );
         })}

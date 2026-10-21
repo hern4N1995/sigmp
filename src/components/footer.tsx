@@ -12,8 +12,8 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="app-shell-footer relative z-40 w-full border-t border-border bg-card/85 shadow-[0_-10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
-      <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
+    <footer className="app-shell-footer relative z-40 w-full shrink-0 border-t border-border bg-card/85 shadow-[0_-10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
+      <div className="mx-auto max-w-6xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-5 sm:pb-5 lg:px-8 lg:py-6">
         <div className="grid items-center gap-3 sm:gap-5 md:grid-cols-[1fr_auto_1fr]">
           <div className="app-shell-footer-links flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground sm:gap-5 md:justify-start">
             <Dialog>

@@ -1,14 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ClipboardList, Eye, Trash2, X } from "lucide-react";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/empty-state";
 
 type Sol = {
   id: string;
@@ -55,7 +69,10 @@ function MisSolicitudes() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: recentData }, { data: cancelledData }] = await Promise.all([
+      const [
+        { data: recentData, error: recentError },
+        { data: cancelledData, error: cancelledError },
+      ] = await Promise.all([
         supabase
           .from("solicitudes")
           .select("*")
@@ -67,6 +84,13 @@ function MisSolicitudes() {
           .eq("estado", "cancelado")
           .order("fecha_creacion", { ascending: false }),
       ]);
+      if (recentError || cancelledError) {
+        const error = recentError ?? cancelledError;
+        console.error("No se pudieron cargar las solicitudes del usuario.", error);
+        toast.error("No se pudieron cargar tus solicitudes. Intentá nuevamente.");
+        setLoading(false);
+        return;
+      }
       const list = Array.from(
         new Map(
           ([...(recentData ?? []), ...(cancelledData ?? [])] as Sol[]).map((item) => [item.id, item]),
@@ -76,7 +100,16 @@ function MisSolicitudes() {
         new Set(list.flatMap((item) => [item.asignado_a, item.colaborador_id]).filter((id): id is string => Boolean(id))),
       );
       if (ids.length) {
-        const { data: profiles } = await supabase.from("profiles").select("id, nombre, apellido").in("id", ids);
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, nombre, apellido")
+          .in("id", ids);
+        if (profilesError) {
+          console.error("No se pudieron cargar los perfiles relacionados.", profilesError);
+          toast.error("No se pudieron cargar los datos de las solicitudes.");
+          setLoading(false);
+          return;
+        }
         const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
         list.forEach((item) => {
           item.responsable = item.asignado_a ? profileMap.get(item.asignado_a) : undefined;
@@ -135,26 +168,34 @@ function MisSolicitudes() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <ClipboardList className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mis solicitudes</h1>
-          <p className="text-sm text-muted-foreground">Seguimiento de todos tus pedidos al Área de Sistemas.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Mis solicitudes"
+        description="Seguimiento de todos tus pedidos al Área de Sistemas."
+        icon={ClipboardList}
+      />
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2" aria-label="Cargando solicitudes">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="h-32 animate-pulse" />
+            <Card key={i} className="space-y-3 p-5">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-1/3" />
+            </Card>
           ))}
         </div>
       ) : items.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
-          <ClipboardList className="mb-3 h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Aún no registraste solicitudes.</p>
+        <Card>
+          <EmptyState
+            title="Todavía no tenés solicitudes"
+            description="Cuando necesites ayuda, creá una solicitud para contactar al Área de Sistemas."
+            icon={ClipboardList}
+            action={
+              <Button asChild>
+                <Link to="/nueva-solicitud">Crear solicitud</Link>
+              </Button>
+            }
+          />
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -263,48 +304,70 @@ function MisSolicitudes() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pendingCancellation} onOpenChange={(open) => !open && setPendingCancellation(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cancelar solicitud</DialogTitle>
-          </DialogHeader>
+      <AlertDialog
+        open={!!pendingCancellation}
+        onOpenChange={(open) => !open && !cancelling && setPendingCancellation(null)}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar solicitud</AlertDialogTitle>
+            <AlertDialogDescription>
+              Indicá el motivo y confirmá si querés cancelar esta solicitud.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Indicá por qué querés cancelar esta solicitud.</p>
             <Textarea
               value={cancellationReason}
               onChange={(event) => setCancellationReason(event.target.value)}
               placeholder="Motivo de cancelación"
               aria-label="Motivo de cancelación"
               required
+              disabled={cancelling}
             />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setPendingCancellation(null)}>Volver</Button>
-              <Button disabled={!cancellationReason.trim() || cancelling} onClick={() => void confirmCancellation()}>
-                {cancelling ? "Cancelando..." : "Confirmar cancelación"}
-              </Button>
-            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={cancelling}>Volver</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!cancellationReason.trim() || cancelling}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void confirmCancellation();
+                }}
+              >
+                {cancelling && <Spinner size="sm" />}
+                {cancelling ? "Cancelando…" : "Confirmar cancelación"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <Dialog open={!!pendingDeletion} onOpenChange={(open) => !open && setPendingDeletion(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Eliminar solicitud cancelada</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+      <AlertDialog
+        open={!!pendingDeletion}
+        onOpenChange={(open) => !open && !deleting && setPendingDeletion(null)}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar solicitud cancelada</AlertDialogTitle>
+            <AlertDialogDescription>
               ¿Eliminar esta solicitud cancelada? Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setPendingDeletion(null)}>Cancelar</Button>
-              <Button variant="destructive" disabled={deleting} onClick={() => void confirmDeletion()}>
-                {deleting ? "Eliminando..." : "Eliminar solicitud"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmDeletion();
+              }}
+            >
+                {deleting && <Spinner size="sm" />}
+                {deleting ? "Eliminando…" : "Eliminar solicitud"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

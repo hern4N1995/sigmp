@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { ClipboardList, Search, CheckCircle2, Download, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -119,12 +133,16 @@ function AdminSolicitudes() {
   const [totalHistoric, setTotalHistoric] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingPage, setLoadingPage] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [processingTicketId, setProcessingTicketId] = useState<string | null>(null);
+  const [pausing, setPausing] = useState(false);
 
   const [admins, setAdmins] = useState<Array<{ id: string } & Person>>([]);
   const [motivos, setMotivos] = useState<MotivosPausa[]>([]);
 
   const [detail, setDetail] = useState<Row | null>(null);
   const [pendingFinalization, setPendingFinalization] = useState<Row | null>(null);
+  const [pendingTicketCancellation, setPendingTicketCancellation] = useState<Row | null>(null);
   const [collaboratorId, setCollaboratorId] = useState("none");
   const [finalizationComment, setFinalizationComment] = useState("");
   const [pendingPause, setPendingPause] = useState<Row | null>(null);
@@ -420,25 +438,42 @@ function AdminSolicitudes() {
     estado: Row["estado"],
     selectedCollaboratorId: string | null = null,
     resolucion: string | null = null,
-  ) => {
-    const { error } = await supabase
-      .from("solicitudes")
-      .update({
-        estado,
-        ...(estado === "finalizado" ? { colaborador_id: selectedCollaboratorId, resolucion } : {}),
-      })
-      .eq("id", id);
+  ): Promise<boolean> => {
+    setProcessingTicketId(id);
+    try {
+      const { error } = await supabase
+        .from("solicitudes")
+        .update({
+          estado,
+          ...(estado === "finalizado"
+            ? { colaborador_id: selectedCollaboratorId, resolucion }
+            : {}),
+        })
+        .eq("id", id);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Estado actualizado");
-      setCurrentPage(1);
-      setRefreshTrigger((prev) => prev + 1);
+      if (error) {
+        toast.error(error.message);
+        return false;
+      } else {
+        toast.success("Estado actualizado");
+        setCurrentPage(1);
+        setRefreshTrigger((prev) => prev + 1);
+        return true;
+      }
+    } catch (error) {
+      console.error("No se pudo actualizar el estado de la solicitud.", error);
+      toast.error("No se pudo actualizar el estado. Intentá nuevamente.");
+      return false;
+    } finally {
+      setProcessingTicketId(null);
     }
   };
 
   const requestEstadoChange = (row: Row, estado: Row["estado"]) => {
+    if (estado === "cancelado") {
+      setPendingTicketCancellation(row);
+      return;
+    }
     if (estado === "pausado" && row.estado === "en_proceso") {
       setPendingPause(row);
       setSelectedPauseReason("");
@@ -460,39 +495,53 @@ function AdminSolicitudes() {
     if (!selectedMotivo) return;
     if (selectedMotivo.descripcion === "Otro" && !customPauseDetail.trim()) return;
 
-    const { error } = await supabase
-      .from("solicitudes")
-      .update({
-        estado: "pausado",
-        motivo_pausa_id: selectedPauseReason,
-        motivo_pausa_detalle: selectedMotivo.descripcion === "Otro" ? customPauseDetail : null,
-      })
-      .eq("id", pendingPause.id);
+    setPausing(true);
+    try {
+      const { error } = await supabase
+        .from("solicitudes")
+        .update({
+          estado: "pausado",
+          motivo_pausa_id: selectedPauseReason,
+          motivo_pausa_detalle: selectedMotivo.descripcion === "Otro" ? customPauseDetail : null,
+        })
+        .eq("id", pendingPause.id);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Solicitud pausada");
-      setPendingPause(null);
-      setCurrentPage(1);
-      setRefreshTrigger((prev) => prev + 1);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Solicitud pausada");
+        setPendingPause(null);
+        setCurrentPage(1);
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error("No se pudo pausar la solicitud.", error);
+      toast.error("No se pudo pausar la solicitud. Intentá nuevamente.");
+    } finally {
+      setPausing(false);
     }
   };
 
   const confirmFinalization = async () => {
     if (!pendingFinalization) return;
-    await changeEstado(
+    const updated = await changeEstado(
       pendingFinalization.id,
       "finalizado",
       collaboratorId === "none" ? null : collaboratorId,
       finalizationComment || null,
     );
-    setPendingFinalization(null);
+    if (updated) setPendingFinalization(null);
+  };
+
+  const confirmTicketCancellation = async () => {
+    if (!pendingTicketCancellation) return;
+    const updated = await changeEstado(pendingTicketCancellation.id, "cancelado");
+    if (updated) setPendingTicketCancellation(null);
   };
 
   const exportToCSV = async () => {
     try {
-      setLoading(true);
+      setExporting(true);
       let query = supabase
         .from("solicitudes")
         .select("*")
@@ -560,9 +609,10 @@ function AdminSolicitudes() {
 
       toast.success(`Exportados ${enriched.length} registros`);
     } catch (error) {
+      console.error("No se pudieron exportar las solicitudes.", error);
       toast.error("Error al exportar");
     } finally {
-      setLoading(false);
+      setExporting(false);
     }
   };
 
@@ -588,10 +638,17 @@ function AdminSolicitudes() {
   if (loading) {
     return (
       <AppShell>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 animate-pulse rounded-md bg-muted/50" />
-          ))}
+        <div className="space-y-2" aria-label="Cargando solicitudes">
+          <div className="hidden space-y-2 md:block">
+            {Array.from({ length: 7 }, (_, index) => (
+              <Skeleton key={index} className="h-20 w-full" />
+            ))}
+          </div>
+          <div className="space-y-2 md:hidden">
+            {Array.from({ length: 3 }, (_, index) => (
+              <Skeleton key={index} className="h-20 w-full" />
+            ))}
+          </div>
         </div>
       </AppShell>
     );
@@ -599,15 +656,11 @@ function AdminSolicitudes() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <ClipboardList className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Solicitudes</h1>
-          <p className="text-sm text-muted-foreground">Gestioná todos los pedidos recibidos.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Solicitudes"
+        description="Gestioná todos los pedidos recibidos."
+        icon={ClipboardList}
+      />
 
       <Card className="p-4">
         {/* View Mode Toggle */}
@@ -633,9 +686,15 @@ function AdminSolicitudes() {
             Histórico
           </Button>
           {viewMode === "historic" && (
-            <Button variant="outline" size="sm" onClick={exportToCSV} className="ml-auto gap-2">
-              <Download className="h-4 w-4" />
-              Exportar CSV
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToCSV}
+              className="ml-auto gap-2"
+              disabled={exporting}
+            >
+              {exporting ? <Spinner size="sm" /> : <Download className="h-4 w-4" />}
+              {exporting ? "Exportando…" : "Exportar CSV"}
             </Button>
           )}
         </div>
@@ -685,13 +744,49 @@ function AdminSolicitudes() {
 
         {/* Loading */}
         {loadingPage ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 animate-pulse rounded-md bg-muted/50" />
-            ))}
+          <div className="space-y-2" aria-label="Cargando solicitudes">
+            <div className="hidden space-y-2 md:block">
+              {Array.from({ length: 7 }, (_, index) => (
+                <Skeleton key={index} className="h-14 w-full" />
+              ))}
+            </div>
+            <div className="space-y-2 md:hidden">
+              {Array.from({ length: 3 }, (_, index) => (
+                <Skeleton key={index} className="h-14 w-full" />
+              ))}
+            </div>
           </div>
         ) : displayData.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Sin resultados.</div>
+          <EmptyState
+            title={
+              q || filterEstado !== "all" || onlyMine
+                ? "No hay resultados para estos filtros"
+                : "Todavía no hay solicitudes"
+            }
+            description={
+              q || filterEstado !== "all" || onlyMine
+                ? "Probá con otros criterios o limpiá los filtros para ver todas las solicitudes."
+                : "Las solicitudes recibidas aparecerán en esta lista."
+            }
+            icon={ClipboardList}
+            action={
+              q || filterEstado !== "all" || onlyMine ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setQ("");
+                    setFilterEstado("all");
+                    setOnlyMine(false);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Limpiar filtros
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             {/* DESKTOP TABLE */}
@@ -728,8 +823,10 @@ function AdminSolicitudes() {
                         <Select
                           value={r.estado}
                           onValueChange={(v) => requestEstadoChange(r, v as Row["estado"])}
+                          disabled={processingTicketId === r.id}
                         >
                           <SelectTrigger className="h-8 w-32 text-xs">
+                            {processingTicketId === r.id && <Spinner size="sm" />}
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -766,6 +863,12 @@ function AdminSolicitudes() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              disabled={processingTicketId === r.id}
+                              aria-label={
+                                r.estado === "cancelado"
+                                  ? "Marcar solicitud como vista"
+                                  : "Finalizar solicitud"
+                              }
                               onClick={() =>
                                 requestEstadoChange(
                                   r,
@@ -773,7 +876,11 @@ function AdminSolicitudes() {
                                 )
                               }
                             >
-                              <CheckCircle2 className="h-4 w-4 text-primary" />
+                              {processingTicketId === r.id ? (
+                                <Spinner size="sm" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-primary" />
+                              )}
                             </Button>
                           )}
                         </div>
@@ -1029,7 +1136,15 @@ function AdminSolicitudes() {
               <Button variant="outline" onClick={() => setPendingFinalization(null)}>
                 Cancelar
               </Button>
-              <Button onClick={() => void confirmFinalization()}>Finalizar solicitud</Button>
+              <Button
+                onClick={() => void confirmFinalization()}
+                disabled={processingTicketId === pendingFinalization?.id}
+              >
+                {processingTicketId === pendingFinalization?.id && <Spinner size="sm" />}
+                {processingTicketId === pendingFinalization?.id
+                  ? "Finalizando…"
+                  : "Finalizar solicitud"}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -1074,17 +1189,52 @@ function AdminSolicitudes() {
               <Button
                 onClick={() => void confirmPause()}
                 disabled={
+                  pausing ||
                   !selectedPauseReason ||
                   (motivos.find((m) => m.id === selectedPauseReason)?.descripcion === "Otro" &&
                     !customPauseDetail.trim())
                 }
               >
-                Pausar solicitud
+                {pausing && <Spinner size="sm" />}
+                {pausing ? "Pausando…" : "Pausar solicitud"}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!pendingTicketCancellation}
+        onOpenChange={(open) =>
+          !open && processingTicketId === null && setPendingTicketCancellation(null)
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar solicitud</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Confirmás la cancelación de “{pendingTicketCancellation?.motivo}”? La solicitud
+              quedará marcada como cancelada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingTicketId !== null}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={processingTicketId !== null}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmTicketCancellation();
+              }}
+            >
+              {processingTicketId === pendingTicketCancellation?.id && <Spinner size="sm" />}
+              {processingTicketId === pendingTicketCancellation?.id
+                ? "Cancelando…"
+                : "Cancelar solicitud"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

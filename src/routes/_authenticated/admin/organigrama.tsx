@@ -6,7 +6,6 @@ import {
   ArrowUp,
   ChevronDown,
   ChevronRight,
-  Loader2,
   Pencil,
   Plus,
   Power,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,6 +28,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,6 +48,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   getUnidadDescendantIds,
   normalizeText,
@@ -143,13 +156,22 @@ function formatError(error: { code?: string; message?: string }) {
 }
 
 function OrganigramaPage() {
+  const isMobile = useIsMobile();
   const [unidades, setUnidades] = useState<UnidadNode[]>([]);
   const [perfiles, setPerfiles] = useState<ProfileRow[]>([]);
   const [unitCounts, setUnitCounts] = useState<Map<string, UnitCounts>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<string | null>(null);
+  const [unitToDelete, setUnitToDelete] = useState<UnidadNode | null>(null);
+  const [chiefToRemove, setChiefToRemove] = useState<ProfileRow | null>(null);
+  const [pendingChiefReplacement, setPendingChiefReplacement] = useState<{
+    perfil: ProfileRow;
+    currentChiefName: string;
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [typeSelectOpen, setTypeSelectOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<UnidadForm>(emptyForm);
@@ -274,6 +296,7 @@ function OrganigramaPage() {
       return;
     }
     setSaving(true);
+    setSavingAction("guardar-unidad");
     const result =
       dialogMode === "create"
         ? await supabase.from("unidades").insert({
@@ -289,6 +312,7 @@ function OrganigramaPage() {
             .update(parsed.data)
             .eq("id", editingId ?? "");
     setSaving(false);
+    setSavingAction(null);
     if (result.error) {
       toast.error(formatError(result.error));
       return;
@@ -306,6 +330,7 @@ function OrganigramaPage() {
     const reordered = [...siblings];
     [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
     setSaving(true);
+    setSavingAction(`${direction < 0 ? "subir" : "bajar"}-${unidad.id}`);
     for (const [position, sibling] of reordered.entries()) {
       const { error } = await supabase
         .from("unidades")
@@ -314,21 +339,26 @@ function OrganigramaPage() {
       if (error) {
         toast.error(formatError(error));
         setSaving(false);
+        setSavingAction(null);
         await load();
         return;
       }
     }
     setSaving(false);
+    setSavingAction(null);
+    toast.success("Orden de las unidades actualizado.");
     await load();
   };
 
   const toggleActive = async (unidad: UnidadNode) => {
     setSaving(true);
+    setSavingAction(`estado-${unidad.id}`);
     const { error } = await supabase
       .from("unidades")
       .update({ activo: !unidad.activo })
       .eq("id", unidad.id);
     setSaving(false);
+    setSavingAction(null);
     if (error) {
       toast.error(formatError(error));
       return;
@@ -342,41 +372,53 @@ function OrganigramaPage() {
     const assignedCount = unitCounts.get(unidad.id)?.usuarios ?? 0;
     const ticketsCount = unitCounts.get(unidad.id)?.tickets ?? 0;
     if (descendants.length || assignedCount || ticketsCount || !unidad.padre_id) return;
-    if (
-      !window.confirm(`¿Eliminar la unidad "${unidad.nombre}"? Esta acción no se puede deshacer.`)
-    ) {
-      return;
-    }
+    setUnitToDelete(unidad);
+  };
+
+  const confirmDeleteUnit = async () => {
+    if (!unitToDelete) return;
     setSaving(true);
-    const { error } = await supabase.from("unidades").delete().eq("id", unidad.id);
+    setSavingAction(`eliminar-${unitToDelete.id}`);
+    const { error } = await supabase.from("unidades").delete().eq("id", unitToDelete.id);
     setSaving(false);
+    setSavingAction(null);
     if (error) {
       toast.error(formatError(error));
       return;
     }
     toast.success("Unidad eliminada.");
+    setUnitToDelete(null);
     await load();
   };
 
   const removeChief = async (perfil: ProfileRow) => {
-    const fullName =
-      `${perfil.nombre ?? ""} ${perfil.apellido ?? ""}`.trim() || perfil.email || "la persona";
-    if (!window.confirm(`¿Quitar la jefatura de ${fullName}?`)) return;
+    setChiefToRemove(perfil);
+  };
+
+  const confirmRemoveChief = async () => {
+    if (!chiefToRemove) return;
     setSaving(true);
+    setSavingAction(`quitar-jefatura-${chiefToRemove.id}`);
     const { error } = await supabase
       .from("profiles")
       .update({ es_jefe: false })
-      .eq("id", perfil.id);
+      .eq("id", chiefToRemove.id);
     setSaving(false);
+    setSavingAction(null);
     if (error) {
       toast.error(formatError(error));
       return;
     }
     toast.success("Jefatura quitada.");
+    setChiefToRemove(null);
     await load();
   };
 
-  const resolveRequest = async (perfil: ProfileRow, aprobar: boolean) => {
+  const resolveRequest = async (
+    perfil: ProfileRow,
+    aprobar: boolean,
+    confirmedReplacement = false,
+  ) => {
     const unidad = perfil.unidad_id ? unitMap.get(perfil.unidad_id) : undefined;
     if (aprobar && unidad) {
       const currentChief = (leadersByUnit.get(unidad.id) ?? []).find(
@@ -387,20 +429,26 @@ function OrganigramaPage() {
           `${currentChief.nombre ?? ""} ${currentChief.apellido ?? ""}`.trim() ||
           currentChief.email ||
           "la persona actual";
-        if (!window.confirm(`La unidad ya tiene jefe/a (${name}). ¿Querés reemplazarlo/a?`)) return;
+        if (!confirmedReplacement) {
+          setPendingChiefReplacement({ perfil, currentChiefName: name });
+          return;
+        }
       }
     }
     setSaving(true);
+    setSavingAction(`${aprobar ? "aprobar" : "rechazar"}-${perfil.id}`);
     const { error } = await supabase.rpc("resolver_solicitud_jefatura", {
       _profile_id: perfil.id,
       _aprobar: aprobar,
     });
     setSaving(false);
+    setSavingAction(null);
     if (error) {
       toast.error(formatError(error));
       return;
     }
     toast.success(aprobar ? "Solicitud aprobada." : "Solicitud rechazada.");
+    setPendingChiefReplacement(null);
     await load();
   };
 
@@ -443,7 +491,7 @@ function OrganigramaPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="mt-0.5 h-7 w-7 shrink-0"
+                className="mt-0.5 h-10 w-10 shrink-0"
                 aria-label={isOpen ? `Contraer ${unidad.nombre}` : `Expandir ${unidad.nombre}`}
                 onClick={() =>
                   setExpanded((current) => {
@@ -461,7 +509,7 @@ function OrganigramaPage() {
                 )}
               </Button>
             ) : (
-              <span className="w-7 shrink-0" />
+              <span className="w-10 shrink-0" />
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -482,11 +530,15 @@ function OrganigramaPage() {
                         "Sin nombre"}
                       <button
                         type="button"
-                        className="ml-1 text-destructive underline"
+                        className="ml-1 inline-flex min-h-10 items-center text-destructive underline"
                         onClick={() => void removeChief(perfil)}
                         disabled={saving}
                       >
-                        Quitar
+                        {savingAction === `quitar-jefatura-${perfil.id}` ? (
+                          <Spinner size="sm" />
+                        ) : (
+                          "Quitar"
+                        )}
                       </button>
                     </span>
                   ))}
@@ -539,7 +591,11 @@ function OrganigramaPage() {
               onClick={() => void moveUnit(unidad, -1)}
               disabled={saving || index <= 0}
             >
-              <ArrowUp className="h-4 w-4" />
+              {savingAction === `subir-${unidad.id}` ? (
+                <Spinner size="sm" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
             </Button>
             <Button
               type="button"
@@ -549,7 +605,11 @@ function OrganigramaPage() {
               onClick={() => void moveUnit(unidad, 1)}
               disabled={saving || index === siblings.length - 1}
             >
-              <ArrowDown className="h-4 w-4" />
+              {savingAction === `bajar-${unidad.id}` ? (
+                <Spinner size="sm" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
             </Button>
             <Button
               type="button"
@@ -558,8 +618,16 @@ function OrganigramaPage() {
               onClick={() => void toggleActive(unidad)}
               disabled={saving}
             >
-              <Power className="mr-1 h-3.5 w-3.5" />
-              {unidad.activo ? "Desactivar" : "Reactivar"}
+              {savingAction === `estado-${unidad.id}` ? (
+                <Spinner size="sm" />
+              ) : (
+                <Power className="mr-1 h-3.5 w-3.5" />
+              )}
+              {savingAction === `estado-${unidad.id}`
+                ? "Actualizando…"
+                : unidad.activo
+                  ? "Desactivar"
+                  : "Reactivar"}
             </Button>
             <Button
               type="button"
@@ -569,7 +637,11 @@ function OrganigramaPage() {
               onClick={() => void deleteUnit(unidad)}
               disabled={saving || !canDelete}
             >
-              <Trash2 className="h-4 w-4" />
+              {savingAction === `eliminar-${unidad.id}` ? (
+                <Spinner size="sm" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
             </Button>
           </div>
           {!canDelete && (
@@ -591,17 +663,11 @@ function OrganigramaPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Users className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Organigrama</h1>
-          <p className="text-sm text-muted-foreground">
-            Administrá las unidades, sus dependencias y las jefaturas.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Organigrama"
+        description="Administrá las unidades, sus dependencias y las jefaturas."
+        icon={Users}
+      />
 
       <Card className="mb-5 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -638,8 +704,17 @@ function OrganigramaPage() {
           <span>Acciones</span>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Cargando organigrama...
+          <div className="space-y-2 py-4" aria-label="Cargando organigrama">
+            {Array.from({ length: isMobile ? 3 : 7 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-lg border p-4">
+                <Skeleton className="size-8 shrink-0 rounded-md" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ))}
           </div>
         ) : unidades.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -687,7 +762,14 @@ function OrganigramaPage() {
                       onClick={() => void resolveRequest(perfil, true)}
                       disabled={saving || !unidad?.activo}
                     >
-                      Aprobar
+                      {savingAction === `aprobar-${perfil.id}` ? (
+                        <>
+                          <Spinner size="sm" />
+                          Aprobando…
+                        </>
+                      ) : (
+                        "Aprobar"
+                      )}
                     </Button>
                     <Button
                       type="button"
@@ -696,7 +778,14 @@ function OrganigramaPage() {
                       onClick={() => void resolveRequest(perfil, false)}
                       disabled={saving}
                     >
-                      Rechazar
+                      {savingAction === `rechazar-${perfil.id}` ? (
+                        <>
+                          <Spinner size="sm" />
+                          Rechazando…
+                        </>
+                      ) : (
+                        "Rechazar"
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -706,7 +795,15 @@ function OrganigramaPage() {
         )}
       </Card>
 
-      <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && setDialogMode(null)}>
+      <Dialog
+        open={dialogMode !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTypeSelectOpen(false);
+            setDialogMode(null);
+          }
+        }}
+      >
         <DialogContent className="grid-cols-[minmax(0,1fr)] w-[calc(100%-2rem)] min-w-0 max-w-lg overflow-visible">
           <DialogHeader>
             <DialogTitle>
@@ -736,10 +833,33 @@ function OrganigramaPage() {
             <div className="space-y-1.5">
               <Label>Tipo</Label>
               <Select
+                open={typeSelectOpen}
+                onOpenChange={setTypeSelectOpen}
                 value={form.tipo}
                 onValueChange={(value) => changeFormType(value as UnidadTipo)}
               >
-                <SelectTrigger className="w-full min-w-0">
+                <SelectTrigger
+                  className="w-full min-w-0"
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    event.preventDefault();
+                    event.currentTarget.focus();
+                    setTypeSelectOpen((open) => !open);
+                  }}
+                  onClick={(event) => event.preventDefault()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setTypeSelectOpen((open) => !open);
+                    } else if (event.key === "ArrowDown" && !typeSelectOpen) {
+                      event.preventDefault();
+                      setTypeSelectOpen(true);
+                    } else if (event.key === "Escape" && typeSelectOpen) {
+                      event.preventDefault();
+                      setTypeSelectOpen(false);
+                    }
+                  }}
+                >
                   <SelectValue placeholder="Seleccioná el tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -803,13 +923,103 @@ function OrganigramaPage() {
                 Cancelar
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Guardar
+                {saving && <Spinner size="sm" />}
+                {saving ? "Guardando…" : "Guardar"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!unitToDelete}
+        onOpenChange={(open) => !open && !saving && setUnitToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar unidad</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Eliminar la unidad “{unitToDelete?.nombre}”? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmDeleteUnit();
+              }}
+            >
+              {saving && <Spinner size="sm" />}
+              {saving ? "Eliminando…" : "Eliminar unidad"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!chiefToRemove}
+        onOpenChange={(open) => !open && !saving && setChiefToRemove(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitar jefatura</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Quitar la jefatura de{" "}
+              {`${chiefToRemove?.nombre ?? ""} ${chiefToRemove?.apellido ?? ""}`.trim() ||
+                chiefToRemove?.email ||
+                "esta persona"}
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmRemoveChief();
+              }}
+            >
+              {saving && <Spinner size="sm" />}
+              {saving ? "Quitando…" : "Quitar jefatura"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingChiefReplacement}
+        onOpenChange={(open) => !open && !saving && setPendingChiefReplacement(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reemplazar jefatura actual</AlertDialogTitle>
+            <AlertDialogDescription>
+              La unidad ya tiene jefatura ({pendingChiefReplacement?.currentChiefName}). Si aprobás
+              la solicitud, se reemplazará por la nueva persona.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving}
+              onClick={(event) => {
+                event.preventDefault();
+                if (pendingChiefReplacement) {
+                  void resolveRequest(pendingChiefReplacement.perfil, true, true);
+                }
+              }}
+            >
+              {saving && <Spinner size="sm" />}
+              {saving ? "Aprobando…" : "Reemplazar y aprobar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
