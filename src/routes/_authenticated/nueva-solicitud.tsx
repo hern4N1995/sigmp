@@ -13,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PlusCircle, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
-
 export const Route = createFileRoute("/_authenticated/nueva-solicitud")({
   head: () => ({
     meta: [
@@ -129,7 +128,7 @@ function NuevaSolicitud() {
 
         <Card className="p-6">
           <form onSubmit={submit} className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Nombre</Label>
                 <Input value={profile?.nombre ?? ""} disabled />
@@ -138,9 +137,15 @@ function NuevaSolicitud() {
                 <Label>Apellido</Label>
                 <Input value={profile?.apellido ?? ""} disabled />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Unidad</Label>
-                <Input value={profile?.unidad_display ?? ""} disabled />
+                {/* Read-only box instead of an input so long unit paths wrap instead of being cut off. */}
+                <div
+                  aria-disabled="true"
+                  className="flex min-h-10 w-full cursor-not-allowed items-center rounded-md border border-input bg-transparent px-3 py-2 text-base opacity-50 shadow-sm break-words md:text-sm"
+                >
+                  {profile?.unidad_display ?? ""}
+                </div>
               </div>
             </div>
 

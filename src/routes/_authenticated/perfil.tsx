@@ -169,12 +169,15 @@ function MiPerfil() {
               <Label>DNI</Label>
               <Input value={profile?.dni ?? ""} disabled />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label>Unidad</Label>
-              <Input
-                value={profile?.es_jefe ? (profile.cargo_jefe ?? "") : (profile?.unidad_ruta ?? "")}
-                disabled
-              />
+              {/* Read-only box instead of an input so long unit paths wrap instead of being cut off. */}
+              <div
+                aria-disabled="true"
+                className="flex min-h-10 w-full cursor-not-allowed items-center rounded-md border border-input bg-transparent px-3 py-2 text-base opacity-50 shadow-sm md:text-sm"
+              >
+                {profile?.es_jefe ? (profile.cargo_jefe ?? "") : (profile?.unidad_ruta ?? "")}
+              </div>
             </div>
             {(profile?.es_jefe || profile?.solicitud_jefe) && (
               <div className="space-y-1.5 sm:col-span-2">

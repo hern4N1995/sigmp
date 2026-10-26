@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
@@ -63,6 +64,7 @@ type Row = {
   motivo_pausa_id: string | null;
   motivo_pausa_detalle: string | null;
   resolucion: string | null;
+  revisada_en: string | null;
   profile?: {
     nombre: string | null;
     apellido: string | null;
@@ -82,7 +84,7 @@ type MotivosPausa = {
 
 type Person = { nombre: string | null; apellido: string | null; email: string | null };
 
-const DESKTOP_PAGE_SIZE = 7;
+const DESKTOP_PAGE_SIZE = 6;
 const MOBILE_PAGE_SIZE = 3;
 type EstadoSolicitud = Enums<"estado_solicitud">;
 const ESTADOS_SOLICITUD: EstadoSolicitud[] = [
@@ -149,6 +151,57 @@ function AdminSolicitudes() {
   const [selectedPauseReason, setSelectedPauseReason] = useState<string>("");
   const [customPauseDetail, setCustomPauseDetail] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Realtime refreshes reload the page in place, without the loading spinner.
+  const silentRefresh = useRef(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-solicitudes-list")
+      .on("postgres_changes", { event: "*", schema: "public", table: "solicitudes" }, () => {
+        silentRefresh.current = true;
+        setRefreshTrigger((prev) => prev + 1);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Opening a solicitud marks it as reviewed for every admin; the realtime
+  // UPDATE then refreshes the list and the highlight goes away.
+  useEffect(() => {
+    if (!detail || detail.revisada_en) return;
+    // Clear the highlight right away instead of waiting for the realtime refresh.
+    const revisadaEn = new Date().toISOString();
+    const markReviewed = (rows: Row[]) =>
+      rows.map((row) => (row.id === detail.id ? { ...row, revisada_en: revisadaEn } : row));
+    setItemsCurrentMonth(markReviewed);
+    setItemsHistoric(markReviewed);
+    supabase.rpc("marcar_solicitud_revisada", { _solicitud_id: detail.id }).then(({ error }) => {
+      if (error) console.error("No se pudo marcar la solicitud como revisada.", error);
+    });
+  }, [detail]);
+
+  // Rows get highlighted at different moments; anchoring every breathing animation
+  // to the same start time keeps them pulsing in unison.
+  useEffect(() => {
+    if (typeof CSSAnimation === "undefined" || !document.getAnimations) return;
+    document.getAnimations().forEach((animation) => {
+      if (
+        animation instanceof CSSAnimation &&
+        animation.animationName === "solicitud-nueva-breathe"
+      ) {
+        animation.startTime = 0;
+      }
+    });
+  });
+
+  const highlightClass = (r: Row) =>
+    r.estado !== "en_espera" || r.revisada_en
+      ? undefined
+      : r.urgencia === "urgente"
+        ? "solicitud-nueva solicitud-nueva-urgente"
+        : "solicitud-nueva";
 
   const loadCurrentMonth = async (page: number, pageSize: number) => {
     try {
@@ -356,7 +409,9 @@ function AdminSolicitudes() {
   useEffect(() => {
     let cancelled = false;
     const loadPage = async () => {
-      setLoadingPage(true);
+      const silent = silentRefresh.current;
+      silentRefresh.current = false;
+      if (!silent) setLoadingPage(true);
       try {
         if (viewMode === "current") {
           const result = await loadCurrentMonth(currentPage, pageSize);
@@ -806,7 +861,7 @@ function AdminSolicitudes() {
                   {displayData.map((r) => (
                     <tr
                       key={r.id}
-                      className="cursor-pointer hover:bg-muted/30"
+                      className={cn("cursor-pointer hover:bg-muted/30", highlightClass(r))}
                       onClick={() => setDetail(r)}
                     >
                       <td className="px-3 py-3 text-xs text-muted-foreground">
@@ -894,7 +949,7 @@ function AdminSolicitudes() {
             {/* MOBILE CARDS */}
             <div className="space-y-3 md:hidden">
               {displayData.map((r) => (
-                <Card key={r.id} className="p-4">
+                <Card key={r.id} className={cn("p-4", highlightClass(r))}>
                   <div className="mb-3 flex items-start justify-between">
                     <div className="flex-1">
                       <div className="text-xs text-muted-foreground">
@@ -943,11 +998,26 @@ function AdminSolicitudes() {
             </div>
 
             {/* PAGINATION */}
-            {totalPages > 1 && (
+            {totalPages > 0 && (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages} ({totalRecords} registros; {pageSize} por
                   página)
+                  {viewMode === "current" && (
+                    <>
+                      {" · "}
+                      <button
+                        type="button"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                        onClick={() => {
+                          setViewMode("historic");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Ver meses anteriores
+                      </button>
+                    </>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button

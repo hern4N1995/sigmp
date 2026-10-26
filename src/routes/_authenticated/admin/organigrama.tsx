@@ -481,11 +481,16 @@ function OrganigramaPage() {
     return (
       <div
         key={unidad.id}
-        className="rounded-xl border bg-card p-3 md:rounded-none md:border-0 md:border-b md:px-2 md:py-2"
-        style={{ marginLeft: `${depth * 12}px` }}
+        className="ml-[var(--unit-indent-mobile)] rounded-xl border bg-card p-3 md:ml-0 md:rounded-none md:border-0 md:border-b md:px-2 md:py-2"
+        style={
+          {
+            "--unit-indent-mobile": `${depth > 0 ? 12 : 0}px`,
+            "--unit-indent": `${depth * 20}px`,
+          } as React.CSSProperties
+        }
       >
         <div className="flex flex-col gap-3 md:grid md:grid-cols-[minmax(17rem,2fr)_minmax(10rem,1fr)_minmax(12rem,1.2fr)_minmax(8rem,0.8fr)_minmax(14rem,1.4fr)] md:items-center md:gap-3">
-          <div className="flex min-w-0 items-start gap-2">
+          <div className="flex min-w-0 items-start gap-2 md:pl-[var(--unit-indent)]">
             {children.length > 0 ? (
               <Button
                 type="button"

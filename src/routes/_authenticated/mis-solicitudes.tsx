@@ -69,6 +69,12 @@ function MisSolicitudes() {
 
   useEffect(() => {
     const load = async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        setLoading(false);
+        return;
+      }
+      // Filter explicitly: RLS lets administrators read every solicitud.
       const [
         { data: recentData, error: recentError },
         { data: cancelledData, error: cancelledError },
@@ -76,11 +82,13 @@ function MisSolicitudes() {
         supabase
           .from("solicitudes")
           .select("*")
+          .eq("usuario_id", auth.user.id)
           .order("fecha_creacion", { ascending: false })
           .limit(4),
         supabase
           .from("solicitudes")
           .select("*")
+          .eq("usuario_id", auth.user.id)
           .eq("estado", "cancelado")
           .order("fecha_creacion", { ascending: false }),
       ]);

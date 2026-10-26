@@ -10,7 +10,6 @@ import {
   Moon,
   Menu,
   X,
-  Bell,
   Users,
   UserCircle,
   Network,
@@ -23,6 +22,7 @@ import { Footer } from "@/components/footer";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { NotificationsBell, type PendingSolicitud } from "@/components/notifications-bell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(0);
+  const [pendingItems, setPendingItems] = useState<PendingSolicitud[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const previousPending = useRef<number | null>(null);
@@ -137,11 +138,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAdmin) return;
     const load = async () => {
-      const { count } = await supabase
+      const { data, count } = await supabase
         .from("solicitudes")
-        .select("id", { count: "exact", head: true })
-        .eq("estado", "en_espera");
+        .select(
+          "id, motivo, urgencia, fecha_creacion, solicitante_nombre, unidad_nombre_snapshot, revisada_en",
+          { count: "exact" },
+        )
+        .eq("estado", "en_espera")
+        .order("fecha_creacion", { ascending: false })
+        .limit(50);
       const nextPending = count ?? 0;
+      setPendingItems(data ?? []);
       if (previousPending.current !== null && nextPending > previousPending.current) {
         startNotificationSound();
       }
@@ -159,11 +166,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (audioContext.current) void audioContext.current.close();
     };
   }, [isAdmin]);
-
-  const reviewNotifications = () => {
-    stopNotificationSound();
-    navigate({ to: "/admin/solicitudes" });
-  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -187,6 +189,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const adminLinks = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
+    { to: "/nueva-solicitud", label: "Nueva solicitud", icon: PlusCircle },
+    { to: "/mis-solicitudes", label: "Mis solicitudes", icon: ClipboardList },
     { to: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
     { to: "/admin/usuarios", label: "Usuarios", icon: Users },
     { to: "/admin/organigrama", label: "Organigrama", icon: Network },
@@ -319,18 +323,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {isAdmin && pending > 0 && (
-            <button
-              type="button"
-              aria-label="Revisar solicitudes pendientes"
-              onClick={reviewNotifications}
-              className="app-shell-bell-button relative flex size-10 items-center justify-center rounded-md hover:bg-accent"
-            >
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                {pending}
-              </span>
-            </button>
+          {isAdmin && (
+            <NotificationsBell
+              pending={pending}
+              items={pendingItems}
+              onOpen={stopNotificationSound}
+            />
           )}
           <ProfileMenu />
         </div>
@@ -360,18 +358,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {isAdmin && pending > 0 && (
-            <button
-              type="button"
-              aria-label="Revisar solicitudes pendientes"
-              onClick={reviewNotifications}
-              className="app-shell-bell-button relative mr-1 flex size-10 items-center justify-center rounded-md hover:bg-accent"
-            >
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                {pending}
-              </span>
-            </button>
+          {isAdmin && (
+            <NotificationsBell
+              pending={pending}
+              items={pendingItems}
+              onOpen={stopNotificationSound}
+              className="mr-1"
+            />
           )}
           <ProfileMenu />
           <Button
@@ -388,11 +381,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="fixed inset-x-0 top-14 z-20 border-b border-border bg-sidebar px-3 py-3 lg:hidden">
-          <nav className="space-y-0.5">
-            <NavItems />
-          </nav>
-        </div>
+        <>
+          <div
+            aria-hidden="true"
+            className="fixed inset-x-0 bottom-0 top-14 z-20 bg-black/20 lg:hidden"
+            onClick={() => setOpen(false)}
+          />
+          <div className="fixed inset-x-0 top-14 z-30 border-b border-border bg-sidebar px-3 py-3 lg:hidden">
+            <nav className="space-y-0.5">
+              <NavItems />
+            </nav>
+          </div>
+        </>
       )}
 
       <main className="flex-1 pt-20 lg:pl-64 lg:pt-24">

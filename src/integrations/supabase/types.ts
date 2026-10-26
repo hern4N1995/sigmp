@@ -116,6 +116,8 @@ export type Database = {
           motivo_pausa_detalle: string | null;
           motivo_pausa_id: string | null;
           resolucion: string | null;
+          revisada_en: string | null;
+          revisada_por: string | null;
           solicitante_email: string | null;
           solicitante_nombre: string | null;
           unidad_id: string | null;
@@ -136,6 +138,8 @@ export type Database = {
           motivo_pausa_detalle?: string | null;
           motivo_pausa_id?: string | null;
           resolucion?: string | null;
+          revisada_en?: string | null;
+          revisada_por?: string | null;
           solicitante_email?: string | null;
           solicitante_nombre?: string | null;
           unidad_id?: string | null;
@@ -156,6 +160,8 @@ export type Database = {
           motivo_pausa_detalle?: string | null;
           motivo_pausa_id?: string | null;
           resolucion?: string | null;
+          revisada_en?: string | null;
+          revisada_por?: string | null;
           solicitante_email?: string | null;
           solicitante_nombre?: string | null;
           unidad_id?: string | null;
@@ -255,6 +261,12 @@ export type Database = {
       eliminar_usuario: {
         Args: {
           _user_id: string;
+        };
+        Returns: undefined;
+      };
+      marcar_solicitud_revisada: {
+        Args: {
+          _solicitud_id: string;
         };
         Returns: undefined;
       };

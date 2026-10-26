@@ -1,7 +1,0 @@
-node_modules
-.output
-.git
-.env
-.env.*
-!.env.example
-*.tar

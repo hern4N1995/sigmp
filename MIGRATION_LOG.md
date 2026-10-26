@@ -4,6 +4,26 @@ Registro cronológico del progreso de la migración fuera de Lovable.
 
 ## Hecho
 
+### 2026-10-26 — Solicitudes nuevas resaltadas hasta que se revisan
+- Migración `20261026000000_solicitudes_revisadas.sql`: columnas `solicitudes.revisada_en` y `revisada_por`, trigger `solicitudes_nace_sin_revisar` (toda solicitud nueva nace sin revisar) y función `marcar_solicitud_revisada`, que solo puede ejecutar un administrador y marca la primera revisión.
+- En `/admin/solicitudes` la lista se actualiza en tiempo real y las solicitudes `en_espera` sin revisar tienen un efecto de respiración (verde claro; rojo si son urgentes). Al abrir la solicitud queda revisada para todos los administradores.
+- Aplicada en la base remota el 2026-10-26.
+
+### 2026-10-23 — Corrección al crear solicitudes
+- Migración `20261023000002_fix_snapshot_solicitante_sin_area.sql`: `snapshot_solicitante` ya no usa `profiles.area` ni `solicitudes.solicitante_area` (eliminadas en `20261020000001`), que hacían fallar cada alta con `column "area" does not exist`.
+
+### 2026-10-23 — Email de perfil, funciones de RLS y encabezados de seguridad
+- Migración `20261023000001_email_perfil_y_funciones_auxiliares.sql`: `profiles.email` se mantiene igual al email de `auth.users` (trigger al editar el perfil y al cambiar el email de la cuenta, más una corrección de los perfiles existentes).
+- `has_role` y `admin_puede_actualizar_solicitud` solo responden sobre otros usuarios o solicitudes si quien consulta es administrador. Siguen ejecutables por `authenticated` porque las políticas RLS las necesitan.
+- `src/server.ts` agrega encabezados de seguridad (CSP `frame-ancestors`/`base-uri`/`object-src`/`form-action`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`) a las respuestas del servidor.
+- Aplicada en la base remota el 2026-10-26.
+
+### 2026-10-23 — Restricción de solicitudes para no administradores
+- Se agregó la migración `20261023000000_restringir_solicitudes_empleados.sql` con el trigger `solicitudes_zz_restringir_no_admin`.
+- Al crear, un usuario no administrador solo puede generar solicitudes `en_espera`, de su propia unidad y sin datos de gestión (asignación, resolución, pausa, cancelación); `fecha_creacion` se fija en el servidor.
+- Al modificar, solo puede cancelar solicitudes `en_espera` o `en_proceso`, cambiando únicamente `estado` y `motivo_cancelacion`. Ya no queda asignado como responsable al cancelar.
+- Administradores y procesos internos no se ven afectados. Aplicada en la base remota el 2026-10-26.
+
 ### 2026-09-03 — Estado pausado y motivos de pausa
 - Se agregó la migración `20260903000000_agregar_estado_pausado.sql` que introduce el estado `pausado` para solicitudes en reparación que requieren recursos externos.
 - Se creó la tabla `public.motivos_pausa` con valores predefinidos: "En espera de autorización de compra", "Falta de disco", "Falta de RAM", "Falta de fuente", "Falta de placa madre", y "Otro" (con opción de texto libre).

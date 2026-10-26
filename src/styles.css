@@ -455,6 +455,62 @@
   display: none;
 }
 
+/* Highlight for solicitudes en espera that no admin has opened yet.
+   Fill plus left edge; green for normal, red for urgent. */
+@keyframes solicitud-nueva-breathe {
+  0%,
+  100% {
+    background-color: color-mix(
+      in oklab,
+      var(--solicitud-nueva-color) 6%,
+      var(--solicitud-nueva-base)
+    );
+    box-shadow: var(--solicitud-nueva-edge)
+      color-mix(in oklab, var(--solicitud-nueva-color) 40%, transparent);
+  }
+  50% {
+    background-color: color-mix(
+      in oklab,
+      var(--solicitud-nueva-color) 22%,
+      var(--solicitud-nueva-base)
+    );
+    box-shadow: var(--solicitud-nueva-edge) var(--solicitud-nueva-color);
+  }
+}
+
+.solicitud-nueva {
+  --solicitud-nueva-color: oklch(0.85 0.17 155);
+  --solicitud-nueva-edge: inset 3px 0 0;
+  --solicitud-nueva-base: var(--card);
+  border-radius: var(--radius);
+  animation: solicitud-nueva-breathe 2.4s ease-in-out infinite;
+}
+
+/* The light green washes out on white cards. */
+.light .solicitud-nueva {
+  --solicitud-nueva-color: oklch(0.68 0.17 155);
+}
+
+/* Table rows can't have rounded corners, so the effect is drawn on an overlay. */
+tr.solicitud-nueva {
+  --solicitud-nueva-base: transparent;
+  position: relative;
+  animation: none;
+}
+
+tr.solicitud-nueva::after {
+  content: "";
+  position: absolute;
+  inset: 2px 0;
+  border-radius: var(--radius);
+  pointer-events: none;
+  animation: solicitud-nueva-breathe 2.4s ease-in-out infinite;
+}
+
+.solicitud-nueva.solicitud-nueva-urgente {
+  --solicitud-nueva-color: oklch(0.65 0.23 25);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -470,6 +526,13 @@
     animation-iteration-count: infinite !important;
   }
 
+  /* Slow, low-contrast fade; kept on purpose so unreviewed solicitudes stand out. */
+  .solicitud-nueva,
+  tr.solicitud-nueva::after {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -481,6 +544,13 @@
 body[data-scroll-locked][data-scroll-locked] {
   margin-right: 0 !important;
   overflow-y: auto !important;
+}
+
+/* Tailwind paints the ring offset white by default, which shows as a white line
+   around focused fields in dark mode; drop the offset so only the green ring shows. */
+:root:not(.light) :focus-visible,
+:root:not(.light) [data-state="open"] {
+  --tw-ring-offset-width: 0px;
 }
 
 :root:not(.light) input[type="date"] {
