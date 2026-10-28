@@ -221,19 +221,25 @@ function Estadisticas() {
   const [reportUrgency, setReportUrgency] = useState("all");
   const [reportPage, setReportPage] = useState(1);
   const [puntajes, setPuntajes] = useState<Map<string, number>>(new Map());
+  const [omitidas, setOmitidas] = useState<Set<string>>(new Set());
   const [tecnicos, setTecnicos] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const load = async () => {
       const { data, error } = await supabase
         .from("calificaciones")
-        .select("solicitud_id, puntaje")
-        .eq("omitida", false);
+        .select("solicitud_id, puntaje, omitida");
       if (error) {
         console.error("No se pudieron cargar las calificaciones.", error);
         return;
       }
-      setPuntajes(new Map((data ?? []).map((c) => [c.solicitud_id, c.puntaje ?? 0])));
+      const rows = data ?? [];
+      setPuntajes(
+        new Map(
+          rows.filter((c) => !c.omitida && c.puntaje).map((c) => [c.solicitud_id, c.puntaje ?? 0]),
+        ),
+      );
+      setOmitidas(new Set(rows.filter((c) => c.omitida).map((c) => c.solicitud_id)));
     };
     void load();
   }, []);
@@ -587,9 +593,22 @@ function Estadisticas() {
     const porTecnico = new Map<string, { suma: number; cantidad: number }>();
     let suma = 0;
     let cantidad = 0;
+    let omitidasCount = 0;
+    let pendientes = 0;
+    let vencidas = 0;
+    // Mismo plazo que solicitudes_por_calificar() en la base.
+    const limitePlazo = Date.now() - 15 * 24 * 60 * 60 * 1000;
     filteredItems.forEach((s) => {
+      // Solo las finalizadas por otra persona se pueden calificar.
+      if (s.estado !== "finalizado" || (s.asignado_a && s.asignado_a === s.usuario_id)) return;
       const puntaje = puntajes.get(s.id);
-      if (!puntaje) return;
+      if (!puntaje) {
+        if (omitidas.has(s.id)) omitidasCount++;
+        else if (s.fecha_finalizacion && new Date(s.fecha_finalizacion).getTime() >= limitePlazo)
+          pendientes++;
+        else vencidas++;
+        return;
+      }
       suma += puntaje;
       cantidad++;
       const key = s.asignado_a ?? "";
@@ -601,13 +620,16 @@ function Estadisticas() {
     return {
       promedio: cantidad ? suma / cantidad : 0,
       cantidad,
+      omitidas: omitidasCount,
+      pendientes,
+      vencidas,
       tecnicos: Array.from(porTecnico, ([id, acc]) => ({
         nombre: (id && tecnicos.get(id)) || "Sin asignar",
         promedio: acc.suma / acc.cantidad,
         cantidad: acc.cantidad,
       })).sort((a, b) => b.promedio - a.promedio),
     };
-  }, [filteredItems, puntajes, tecnicos]);
+  }, [filteredItems, puntajes, omitidas, tecnicos]);
 
   if (loading) {
     return (
@@ -926,8 +948,31 @@ function Estadisticas() {
               </ul>
             </div>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Según los filtros de dependencia, unidad y mes aplicados arriba.
+          <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+            {[
+              { label: "Calificadas", value: satisfaccion.cantidad, hint: "Con puntaje" },
+              { label: "Omitidas", value: satisfaccion.omitidas, hint: "Eligieron no calificar" },
+              {
+                label: "Pendientes",
+                value: satisfaccion.pendientes,
+                hint: "Aún dentro de los 15 días",
+              },
+              {
+                label: "Sin calificar",
+                value: satisfaccion.vencidas,
+                hint: "Venció el plazo sin respuesta",
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg bg-muted/40 p-3">
+                <dt className="text-xs text-muted-foreground">{stat.label}</dt>
+                <dd className="mt-1 text-2xl font-bold tracking-tight">{stat.value}</dd>
+                <dd className="text-[11px] text-muted-foreground">{stat.hint}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Sobre solicitudes finalizadas, según los filtros de dependencia, unidad y mes aplicados
+            arriba. No incluye las que el propio solicitante atendió.
           </p>
         </Card>
 
