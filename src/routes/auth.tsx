@@ -135,6 +135,19 @@ function AuthPage() {
               </div>
             </div>
           </div>
+          <Button
+            type="button"
+            size="sm"
+            className="ml-auto lg:hidden"
+            onClick={() => {
+              setMode("signin");
+              document
+                .getElementById("ingreso")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            Iniciar sesión
+          </Button>
         </div>
       </header>
 
@@ -176,7 +189,10 @@ function AuthPage() {
             </section>
           </div>
 
-          <Card className="w-full max-w-md border-border bg-card/70 p-6 backdrop-blur">
+          <Card
+            id="ingreso"
+            className="w-full max-w-md scroll-mt-4 border-border bg-card/70 p-6 backdrop-blur"
+          >
             <div className="mb-5 flex gap-1 rounded-lg bg-muted p-1">
               <button
                 type="button"
