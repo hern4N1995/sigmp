@@ -8,6 +8,30 @@ export type Database = {
   };
   public: {
     Tables: {
+      calificaciones: {
+        Row: {
+          comentario: string | null;
+          creada_en: string;
+          omitida: boolean;
+          puntaje: number | null;
+          solicitud_id: string;
+        };
+        Insert: {
+          comentario?: string | null;
+          creada_en?: string;
+          omitida?: boolean;
+          puntaje?: number | null;
+          solicitud_id: string;
+        };
+        Update: {
+          comentario?: string | null;
+          creada_en?: string;
+          omitida?: boolean;
+          puntaje?: number | null;
+          solicitud_id?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           apellido: string | null;
@@ -258,6 +282,24 @@ export type Database = {
       };
     };
     Functions: {
+      calificar_solicitud: {
+        Args: {
+          _comentario: string | null;
+          _omitir: boolean;
+          _puntaje: number | null;
+          _solicitud_id: string;
+        };
+        Returns: undefined;
+      };
+      solicitudes_por_calificar: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          fecha_finalizacion: string;
+          id: string;
+          motivo: string;
+          responsable_nombre: string | null;
+        }[];
+      };
       eliminar_usuario: {
         Args: {
           _user_id: string;

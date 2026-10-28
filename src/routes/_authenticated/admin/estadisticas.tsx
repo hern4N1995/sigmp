@@ -21,7 +21,8 @@ import {
   Legend,
   LabelList,
 } from "recharts";
-import { BarChart3, Check, ChevronsUpDown, Download, X } from "lucide-react";
+import { BarChart3, Check, ChevronsUpDown, Download, Star, X } from "lucide-react";
+import { Estrellas } from "@/components/calificacion";
 import {
   Select,
   SelectContent,
@@ -69,6 +70,7 @@ type Sol = {
   estado: "en_espera" | "en_proceso" | "finalizado" | "cancelado" | "visto" | "pausado";
   fecha_creacion: string;
   fecha_finalizacion: string | null;
+  asignado_a: string | null;
 };
 
 const REPORT_DESKTOP_PAGE_SIZE = 10;
@@ -209,6 +211,48 @@ function Estadisticas() {
   const [reportStatus, setReportStatus] = useState("all");
   const [reportUrgency, setReportUrgency] = useState("all");
   const [reportPage, setReportPage] = useState(1);
+  const [puntajes, setPuntajes] = useState<Map<string, number>>(new Map());
+  const [tecnicos, setTecnicos] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("calificaciones")
+        .select("solicitud_id, puntaje")
+        .eq("omitida", false);
+      if (error) {
+        console.error("No se pudieron cargar las calificaciones.", error);
+        return;
+      }
+      setPuntajes(new Map((data ?? []).map((c) => [c.solicitud_id, c.puntaje ?? 0])));
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(items.map((s) => s.asignado_a).filter((id): id is string => Boolean(id))),
+    );
+    if (!ids.length) return;
+    void supabase
+      .from("profiles")
+      .select("id, nombre, apellido")
+      .in("id", ids)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("No se pudieron cargar los técnicos.", error);
+          return;
+        }
+        setTecnicos(
+          new Map(
+            (data ?? []).map((p) => [
+              p.id,
+              `${p.nombre ?? ""} ${p.apellido ?? ""}`.trim() || "Sin nombre",
+            ]),
+          ),
+        );
+      });
+  }, [items]);
 
   useEffect(() => {
     const load = async () => {
@@ -217,7 +261,7 @@ function Estadisticas() {
           supabase
             .from("solicitudes")
             .select(
-              "id, usuario_id, unidad_id, unidad_nombre_snapshot, solicitante_nombre, solicitante_email, motivo, descripcion, urgencia, estado, fecha_creacion, fecha_finalizacion",
+              "id, usuario_id, unidad_id, unidad_nombre_snapshot, solicitante_nombre, solicitante_email, motivo, descripcion, urgencia, estado, fecha_creacion, fecha_finalizacion, asignado_a",
             )
             .order("fecha_creacion", { ascending: true }),
           supabase.from("unidades_arbol").select("*").order("orden"),
@@ -530,6 +574,32 @@ function Estadisticas() {
     return total / r.length / 3_600_000;
   }, [filteredItems]);
 
+  const satisfaccion = useMemo(() => {
+    const porTecnico = new Map<string, { suma: number; cantidad: number }>();
+    let suma = 0;
+    let cantidad = 0;
+    filteredItems.forEach((s) => {
+      const puntaje = puntajes.get(s.id);
+      if (!puntaje) return;
+      suma += puntaje;
+      cantidad++;
+      const key = s.asignado_a ?? "";
+      const acc = porTecnico.get(key) ?? { suma: 0, cantidad: 0 };
+      acc.suma += puntaje;
+      acc.cantidad++;
+      porTecnico.set(key, acc);
+    });
+    return {
+      promedio: cantidad ? suma / cantidad : 0,
+      cantidad,
+      tecnicos: Array.from(porTecnico, ([id, acc]) => ({
+        nombre: (id && tecnicos.get(id)) || "Sin asignar",
+        promedio: acc.suma / acc.cantidad,
+        cantidad: acc.cantidad,
+      })).sort((a, b) => b.promedio - a.promedio),
+    };
+  }, [filteredItems, puntajes, tecnicos]);
+
   if (loading) {
     return (
       <AppShell>
@@ -812,6 +882,43 @@ function Estadisticas() {
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Promedio calculado sobre solicitudes finalizadas.
+          </p>
+        </Card>
+
+        <Card className="p-5 lg:col-span-2">
+          <h2 className="text-sm font-semibold">Satisfacción de los solicitantes</h2>
+          {satisfaccion.cantidad === 0 ? (
+            <div className="mt-2 text-4xl font-bold tracking-tight text-primary">Sin datos aún</div>
+          ) : (
+            <div className="mt-2 grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
+              <div>
+                <div className="flex items-center gap-2 text-4xl font-bold tracking-tight text-primary">
+                  {satisfaccion.promedio.toFixed(1)}
+                  <Star className="h-7 w-7 fill-primary text-primary" aria-hidden="true" />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sobre {satisfaccion.cantidad}{" "}
+                  {satisfaccion.cantidad === 1 ? "calificación" : "calificaciones"}
+                </p>
+              </div>
+              <ul className="divide-y divide-border text-sm">
+                {satisfaccion.tecnicos.map((t) => (
+                  <li key={t.nombre} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0 truncate">{t.nombre}</span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <Estrellas puntaje={Math.round(t.promedio)} />
+                      <span className="w-24 text-right text-xs text-muted-foreground">
+                        {t.promedio.toFixed(1)} · {t.cantidad}{" "}
+                        {t.cantidad === 1 ? "voto" : "votos"}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Según los filtros de dependencia, unidad y mes aplicados arriba.
           </p>
         </Card>
 

@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
+import { Estrellas } from "@/components/calificacion";
 import { ClipboardList, Search, CheckCircle2, Download, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -143,6 +144,11 @@ function AdminSolicitudes() {
   const [motivos, setMotivos] = useState<MotivosPausa[]>([]);
 
   const [detail, setDetail] = useState<Row | null>(null);
+  const [detailCalificacion, setDetailCalificacion] = useState<{
+    puntaje: number | null;
+    comentario: string | null;
+    omitida: boolean;
+  } | null>(null);
   const [pendingFinalization, setPendingFinalization] = useState<Row | null>(null);
   const [pendingTicketCancellation, setPendingTicketCancellation] = useState<Row | null>(null);
   const [collaboratorId, setCollaboratorId] = useState("none");
@@ -181,6 +187,25 @@ function AdminSolicitudes() {
       if (error) console.error("No se pudo marcar la solicitud como revisada.", error);
     });
   }, [detail]);
+
+  const detailId = detail?.estado === "finalizado" ? detail.id : null;
+  useEffect(() => {
+    setDetailCalificacion(null);
+    if (!detailId) return;
+    let cancelled = false;
+    supabase
+      .from("calificaciones")
+      .select("puntaje, comentario, omitida")
+      .eq("solicitud_id", detailId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.error("No se pudo cargar la calificación.", error);
+        if (!cancelled) setDetailCalificacion(data);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailId]);
 
   // Rows get highlighted at different moments; anchoring every breathing animation
   // to the same start time keeps them pulsing in unison.
@@ -1160,6 +1185,27 @@ function AdminSolicitudes() {
                   <p className="break-words whitespace-pre-wrap rounded-lg border border-green-500/30 bg-green-500/5 p-3">
                     {detail.resolucion}
                   </p>
+                </div>
+              )}
+              {detail.estado === "finalizado" && (
+                <div>
+                  <div className="mb-1 text-xs text-muted-foreground">Calificación del solicitante</div>
+                  <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+                    {detailCalificacion?.puntaje ? (
+                      <>
+                        <Estrellas puntaje={detailCalificacion.puntaje} />
+                        {detailCalificacion.comentario && (
+                          <p className="break-words whitespace-pre-wrap">
+                            {detailCalificacion.comentario}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {detailCalificacion?.omitida ? "El solicitante omitió calificar." : "Sin calificar."}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

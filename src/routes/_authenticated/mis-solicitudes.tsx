@@ -17,7 +17,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardList, Eye, Trash2, X } from "lucide-react";
+import { ClipboardList, Eye, Star, Trash2, X } from "lucide-react";
+import {
+  CALIFICACIONES_EVENT,
+  CalificacionDialog,
+  Estrellas,
+  useSolicitudesPorCalificar,
+  type SolicitudPorCalificar,
+} from "@/components/calificacion";
 import { EstadoBadge, UrgenciaBadge } from "@/components/badges";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,9 +44,11 @@ type Sol = {
   motivo_cancelacion: string | null;
   responsable?: Person;
   colaborador?: Person;
+  calificacion?: Calificacion;
 };
 
 type Person = { nombre: string | null; apellido: string | null };
+type Calificacion = { puntaje: number | null; comentario: string | null; omitida: boolean };
 
 export const Route = createFileRoute("/_authenticated/mis-solicitudes")({
   head: () => ({
@@ -60,6 +69,8 @@ function MisSolicitudes() {
   const [detail, setDetail] = useState<Sol | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<Sol | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const porCalificar = useSolicitudesPorCalificar();
+  const [calificando, setCalificando] = useState<SolicitudPorCalificar | null>(null);
 
   const isCreatedToday = (date: string) => {
     const created = new Date(date);
@@ -124,6 +135,20 @@ function MisSolicitudes() {
           item.colaborador = item.colaborador_id ? profileMap.get(item.colaborador_id) : undefined;
         });
       }
+      const finalizadas = list.filter((item) => item.estado === "finalizado").map((item) => item.id);
+      if (finalizadas.length) {
+        const { data: calificaciones, error: calificacionesError } = await supabase
+          .from("calificaciones")
+          .select("solicitud_id, puntaje, comentario, omitida")
+          .in("solicitud_id", finalizadas);
+        if (calificacionesError) {
+          console.error("No se pudieron cargar las calificaciones.", calificacionesError);
+        }
+        const calificacionMap = new Map((calificaciones ?? []).map((c) => [c.solicitud_id, c]));
+        list.forEach((item) => {
+          item.calificacion = calificacionMap.get(item.id);
+        });
+      }
       setItems(list);
       setLoading(false);
     };
@@ -132,8 +157,10 @@ function MisSolicitudes() {
       .channel("mis-solicitudes")
       .on("postgres_changes", { event: "*", schema: "public", table: "solicitudes" }, load)
       .subscribe();
+    window.addEventListener(CALIFICACIONES_EVENT, load);
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener(CALIFICACIONES_EVENT, load);
     };
   }, []);
 
@@ -227,9 +254,20 @@ function MisSolicitudes() {
                 <EstadoBadge value={s.estado} />
               </div>
               <div className="mt-4 flex justify-end gap-2">
+                {s.calificacion?.puntaje && (
+                  <Estrellas puntaje={s.calificacion.puntaje} className="mr-auto self-center" />
+                )}
                 <Button size="sm" variant="ghost" onClick={() => setDetail(s)} aria-label="Ver detalle">
                   <Eye className="mr-2 h-4 w-4" /> Ver detalle
                 </Button>
+                {porCalificar.some((p) => p.id === s.id) && (
+                  <Button
+                    size="sm"
+                    onClick={() => setCalificando(porCalificar.find((p) => p.id === s.id) ?? null)}
+                  >
+                    <Star className="mr-2 h-4 w-4" /> Calificar
+                  </Button>
+                )}
                 {isCreatedToday(s.fecha_creacion) && (s.estado === "en_espera" || s.estado === "en_proceso") && (
                   <Button
                     size="sm"
@@ -301,6 +339,17 @@ function MisSolicitudes() {
                 <div className="mb-1 text-xs text-muted-foreground">Descripción</div>
                 <p className="break-words whitespace-pre-wrap rounded-lg border border-border bg-background p-3">{detail.descripcion}</p>
               </div>
+              {detail.calificacion?.puntaje && (
+                <div>
+                  <div className="mb-1 text-xs text-muted-foreground">Tu calificación</div>
+                  <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+                    <Estrellas puntaje={detail.calificacion.puntaje} />
+                    {detail.calificacion.comentario && (
+                      <p className="break-words whitespace-pre-wrap">{detail.calificacion.comentario}</p>
+                    )}
+                  </div>
+                </div>
+              )}
               {detail.motivo_cancelacion && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Motivo de cancelación</div>
@@ -376,6 +425,8 @@ function MisSolicitudes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CalificacionDialog solicitud={calificando} onClose={() => setCalificando(null)} />
     </AppShell>
   );
 }

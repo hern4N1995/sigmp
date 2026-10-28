@@ -24,6 +24,11 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { NotificationsBell, type PendingSolicitud } from "@/components/notifications-bell";
 import {
+  CalificacionDialog,
+  useSolicitudesPorCalificar,
+  type SolicitudPorCalificar,
+} from "@/components/calificacion";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -67,6 +72,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [pendingItems, setPendingItems] = useState<PendingSolicitud[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
+  const porCalificar = useSolicitudesPorCalificar();
+  const [calificando, setCalificando] = useState<SolicitudPorCalificar | null>(null);
   const previousPending = useRef<number | null>(null);
   const notificationActive = useRef(false);
   const repeatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -323,13 +330,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {isAdmin && (
-            <NotificationsBell
-              pending={pending}
-              items={pendingItems}
-              onOpen={stopNotificationSound}
-            />
-          )}
+          <NotificationsBell
+            isAdmin={isAdmin}
+            pending={pending}
+            items={pendingItems}
+            porCalificar={porCalificar}
+            onCalificar={setCalificando}
+            onOpen={stopNotificationSound}
+          />
           <ProfileMenu />
         </div>
       </header>
@@ -358,14 +366,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {isAdmin && (
-            <NotificationsBell
-              pending={pending}
-              items={pendingItems}
-              onOpen={stopNotificationSound}
-              className="mr-1"
-            />
-          )}
+          <NotificationsBell
+            isAdmin={isAdmin}
+            pending={pending}
+            items={pendingItems}
+            porCalificar={porCalificar}
+            onCalificar={setCalificando}
+            onOpen={stopNotificationSound}
+            className="mr-1"
+          />
           <ProfileMenu />
           <Button
             variant="ghost"
@@ -400,6 +409,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <Footer />
+
+      <CalificacionDialog solicitud={calificando} onClose={() => setCalificando(null)} />
     </div>
   );
 }
