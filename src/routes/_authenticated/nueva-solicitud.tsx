@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PlusCircle, AlertTriangle, Info } from "lucide-react";
+import { PlusCircle, AlertTriangle, Info, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute("/_authenticated/nueva-solicitud")({
   head: () => ({
     meta: [
@@ -24,9 +25,17 @@ export const Route = createFileRoute("/_authenticated/nueva-solicitud")({
 });
 
 const schema = z.object({
-  motivo: z.string().trim().min(3).max(120),
-  descripcion: z.string().trim().min(5).max(1000),
-  urgencia: z.enum(["urgente", "normal"]),
+  motivo: z
+    .string()
+    .trim()
+    .min(3, "El motivo debe tener al menos 3 caracteres.")
+    .max(120, "El motivo no puede superar los 120 caracteres."),
+  descripcion: z
+    .string()
+    .trim()
+    .min(5, "La descripción debe tener al menos 5 caracteres.")
+    .max(1000, "La descripción no puede superar los 1000 caracteres."),
+  urgencia: z.enum(["urgente", "normal"], { message: "Seleccioná el nivel de urgencia." }),
 });
 
 function NuevaSolicitud() {
@@ -128,24 +137,35 @@ function NuevaSolicitud() {
 
         <Card className="p-6">
           <form onSubmit={submit} className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Nombre</Label>
-                <Input value={profile?.nombre ?? ""} disabled />
+            {/* Datos del solicitante: informativos, se toman del perfil. */}
+            <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <UserCircle className="h-5 w-5" />
               </div>
-              <div className="space-y-1.5">
-                <Label>Apellido</Label>
-                <Input value={profile?.apellido ?? ""} disabled />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Unidad</Label>
-                {/* Read-only box instead of an input so long unit paths wrap instead of being cut off. */}
-                <div
-                  aria-disabled="true"
-                  className="flex min-h-10 w-full cursor-not-allowed items-center rounded-md border border-input bg-transparent px-3 py-2 text-base opacity-50 shadow-sm break-words md:text-sm"
-                >
-                  {profile?.unidad_display ?? ""}
-                </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs text-muted-foreground">Solicitante</div>
+                {profile ? (
+                  <>
+                    <div className="break-words font-semibold">
+                      {`${profile.nombre} ${profile.apellido}`.trim() || "Sin nombre"}
+                    </div>
+                    <div className="break-words text-sm text-muted-foreground">
+                      {profile.unidad_display || "Sin unidad asignada"}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-1 space-y-1.5">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3.5 w-64 max-w-full" />
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Tus datos se completan automáticamente con tu perfil.{" "}
+                  <Link to="/perfil" className="font-medium text-primary hover:underline">
+                    Revisalos en Mi perfil
+                  </Link>{" "}
+                  si no son correctos.
+                </p>
               </div>
             </div>
 

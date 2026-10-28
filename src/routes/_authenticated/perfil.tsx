@@ -195,6 +195,13 @@ function MiPerfil() {
               </div>
             )}
           </div>
+          <p className="mt-5 rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+            Para cambiar tu nombre, apellido, DNI{profile?.es_jefe ? "" : " o unidad"} usá{" "}
+            <strong>Editar perfil</strong>.
+            {profile?.es_jefe
+              ? " Como tenés una jefatura asignada, tu unidad y tu correo electrónico solo los puede modificar el Área de Sistemas: avisales si necesitás cambiarlos."
+              : " El correo electrónico no se puede modificar: si necesitás cambiarlo, avisale al Área de Sistemas."}
+          </p>
         </Card>
 
         <Card className="mt-6 p-6">

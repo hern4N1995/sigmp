@@ -30,13 +30,13 @@ const schema = z.object({
     .string()
     .trim()
     .min(2, "Nombre requerido")
-    .max(60)
+    .max(60, "El nombre no puede superar los 60 caracteres")
     .regex(/^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u, "El nombre solo puede contener letras"),
   apellido: z
     .string()
     .trim()
     .min(2, "Apellido requerido")
-    .max(60)
+    .max(60, "El apellido no puede superar los 60 caracteres")
     .regex(
       /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u,
       "El apellido solo puede contener letras",
@@ -232,7 +232,19 @@ function Perfil() {
                 </div>
               )}
             </div>
-            <div className="sm:col-span-2">
+            <div className="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row">
+              {/* Al completar el perfil por primera vez no se puede salir sin guardar. */}
+              {profileComplete && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={loading}
+                  onClick={() => navigate({ to: "/perfil" })}
+                >
+                  Cancelar
+                </Button>
+              )}
               <Button type="submit" className="w-full sm:w-auto" disabled={loading || initial}>
                 {loading && <Spinner size="sm" />}
                 {loading

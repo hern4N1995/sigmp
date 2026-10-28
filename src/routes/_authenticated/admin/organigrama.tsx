@@ -71,10 +71,10 @@ export const Route = createFileRoute("/_authenticated/admin/organigrama")({
 });
 
 const unidadSchema = z.object({
-  nombre: z.string().trim().min(2, "Ingresá un nombre de al menos 2 caracteres.").max(160),
+  nombre: z.string().trim().min(2, "Ingresá un nombre de al menos 2 caracteres.").max(160, "El nombre no puede superar los 160 caracteres."),
   tipo: z.enum(UNIDAD_TIPOS),
   padre_id: z.string().uuid().nullable(),
-  cargo_jefe: z.string().trim().min(2, "Ingresá el cargo de la jefatura.").max(160),
+  cargo_jefe: z.string().trim().min(2, "Ingresá el cargo de la jefatura.").max(160, "El cargo no puede superar los 160 caracteres."),
 });
 
 type ProfileRow = {

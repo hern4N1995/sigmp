@@ -206,7 +206,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
   const adminSection: NavSection = {
     label: "Administración",
-    icon: ShieldCheck,
     links: [
       { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
       { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
