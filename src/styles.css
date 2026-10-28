@@ -431,6 +431,13 @@
     border-color: var(--color-border);
   }
 
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: "Montserrat", sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -531,13 +538,6 @@ tr.solicitud-nueva::after {
   tr.solicitud-nueva::after {
     animation-duration: 2.4s !important;
     animation-iteration-count: infinite !important;
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: "Montserrat", sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
