@@ -561,3 +561,8 @@ body[data-scroll-locked][data-scroll-locked] {
 .light input[type="date"] {
   color-scheme: light;
 }
+
+/* Edge's native "show password" eye is always drawn black; lighten it in dark mode. */
+:root:not(.light) input[type="password"]::-ms-reveal {
+  filter: invert(0.85);
+}
