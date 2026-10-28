@@ -128,7 +128,8 @@ function AdminSolicitudes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [q, setQ] = useState("");
   const [filterEstado, setFilterEstado] = useState<EstadoSolicitud | "all">("all");
-  const [onlyMine, setOnlyMine] = useState(false);
+  // "all" o el id del administrador responsable (asignado_a).
+  const [filterResponsable, setFilterResponsable] = useState("all");
 
   const [itemsCurrentMonth, setItemsCurrentMonth] = useState<Row[]>([]);
   const [itemsHistoric, setItemsHistoric] = useState<Row[]>([]);
@@ -141,6 +142,7 @@ function AdminSolicitudes() {
   const [pausing, setPausing] = useState(false);
 
   const [admins, setAdmins] = useState<Array<{ id: string } & Person>>([]);
+  const [responsables, setResponsables] = useState<Array<{ id: string } & Person>>([]);
   const [motivos, setMotivos] = useState<MotivosPausa[]>([]);
 
   const [detail, setDetail] = useState<Row | null>(null);
@@ -245,8 +247,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine && user?.id) {
-        query = query.eq("asignado_a", user.id);
+      if (filterResponsable !== "all") {
+        query = query.eq("asignado_a", filterResponsable);
       }
 
       query = query.range(from, to);
@@ -279,8 +281,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine && user?.id) {
-        query = query.eq("asignado_a", user.id);
+      if (filterResponsable !== "all") {
+        query = query.eq("asignado_a", filterResponsable);
       }
 
       query = query.range(from, to);
@@ -331,7 +333,7 @@ function AdminSolicitudes() {
         ]),
       );
       const { data: unitRows, error: unitsError } = unitIds.length
-        ? await supabase.from("unidades_arbol").select("id, ruta, cargo_jefe").in("id", unitIds)
+        ? await supabase.from("unidades_arbol").select("id, nombre, cargo_jefe").in("id", unitIds)
         : { data: [], error: null };
       if (unitsError) {
         toast.error(`No se pudieron cargar las unidades: ${unitsError.message}`);
@@ -346,7 +348,7 @@ function AdminSolicitudes() {
         const profileUnit = profile?.unidad_id ? unitMap.get(profile.unidad_id) : undefined;
         const unitDisplay = profile?.es_jefe
           ? (ticketUnit?.cargo_jefe ?? profileUnit?.cargo_jefe ?? row.unidad_nombre_snapshot)
-          : (row.unidad_nombre_snapshot ?? ticketUnit?.ruta ?? profileUnit?.ruta ?? null);
+          : (row.unidad_nombre_snapshot ?? ticketUnit?.nombre ?? profileUnit?.nombre ?? null);
         row.profile = profile
           ? {
               nombre: profile.nombre,
@@ -358,7 +360,7 @@ function AdminSolicitudes() {
               nombre: row.solicitante_nombre,
               apellido: null,
               email: row.solicitante_email,
-              unidad: row.unidad_nombre_snapshot ?? ticketUnit?.ruta ?? null,
+              unidad: row.unidad_nombre_snapshot ?? ticketUnit?.nombre ?? null,
             };
         row.responsable = row.asignado_a ? profileMap.get(row.asignado_a) : undefined;
         row.colaborador = row.colaborador_id ? profileMap.get(row.colaborador_id) : undefined;
@@ -404,7 +406,7 @@ function AdminSolicitudes() {
         setLoading(false);
         return;
       }
-      const adminIds = adminRoles.data.map((role) => role.user_id).filter((id) => id !== user?.id);
+      const adminIds = adminRoles.data.map((role) => role.user_id);
       if (adminIds.length) {
         const { data: adminProfiles, error: adminProfilesError } = await supabase
           .from("profiles")
@@ -415,10 +417,16 @@ function AdminSolicitudes() {
             `No se pudieron cargar los perfiles administradores: ${adminProfilesError.message}`,
           );
         } else {
-          setAdmins(adminProfiles ?? []);
+          const sorted = (adminProfiles ?? []).sort((a, b) =>
+            fullName(a).localeCompare(fullName(b), "es"),
+          );
+          setResponsables(sorted);
+          // Colaboradores: cualquier administrador excepto uno mismo.
+          setAdmins(sorted.filter((admin) => admin.id !== user?.id));
         }
       } else {
         setAdmins([]);
+        setResponsables([]);
       }
 
       setLoading(false);
@@ -468,7 +476,7 @@ function AdminSolicitudes() {
     return () => {
       cancelled = true;
     };
-  }, [viewMode, currentPage, filterEstado, onlyMine, user?.id, refreshTrigger, pageSize]);
+  }, [viewMode, currentPage, filterEstado, filterResponsable, refreshTrigger, pageSize]);
 
   const displayData = useMemo(() => {
     const source = viewMode === "current" ? itemsCurrentMonth : itemsHistoric;
@@ -636,8 +644,8 @@ function AdminSolicitudes() {
         query = query.eq("estado", filterEstado);
       }
 
-      if (onlyMine && user?.id) {
-        query = query.eq("asignado_a", user.id);
+      if (filterResponsable !== "all") {
+        query = query.eq("asignado_a", filterResponsable);
       }
 
       const { data, error } = await query;
@@ -810,16 +818,26 @@ function AdminSolicitudes() {
               <SelectItem value="visto">Visto</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            type="button"
-            variant={onlyMine ? "default" : "outline"}
-            onClick={() => {
+          <Select
+            value={filterResponsable}
+            onValueChange={(value) => {
               setCurrentPage(1);
-              setOnlyMine((value) => !value);
+              setFilterResponsable(value);
             }}
           >
-            Mis solicitudes
-          </Button>
+            <SelectTrigger className="sm:w-56" aria-label="Filtrar por responsable">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los responsables</SelectItem>
+              {responsables.map((admin) => (
+                <SelectItem key={admin.id} value={admin.id}>
+                  {fullName(admin, admin.email)}
+                  {admin.id === user?.id ? " (yo)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Loading */}
@@ -839,18 +857,18 @@ function AdminSolicitudes() {
         ) : displayData.length === 0 ? (
           <EmptyState
             title={
-              q || filterEstado !== "all" || onlyMine
+              q || filterEstado !== "all" || filterResponsable !== "all"
                 ? "No hay resultados para estos filtros"
                 : "Todavía no hay solicitudes"
             }
             description={
-              q || filterEstado !== "all" || onlyMine
+              q || filterEstado !== "all" || filterResponsable !== "all"
                 ? "Probá con otros criterios o limpiá los filtros para ver todas las solicitudes."
                 : "Las solicitudes recibidas aparecerán en esta lista."
             }
             icon={ClipboardList}
             action={
-              q || filterEstado !== "all" || onlyMine ? (
+              q || filterEstado !== "all" || filterResponsable !== "all" ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -858,7 +876,7 @@ function AdminSolicitudes() {
                   onClick={() => {
                     setQ("");
                     setFilterEstado("all");
-                    setOnlyMine(false);
+                    setFilterResponsable("all");
                     setCurrentPage(1);
                   }}
                 >

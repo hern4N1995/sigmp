@@ -188,65 +188,87 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   };
 
-  const empLinks = [
-    { to: "/nueva-solicitud", label: "Nueva solicitud", icon: PlusCircle },
-    { to: "/mis-solicitudes", label: "Mis solicitudes", icon: ClipboardList },
-    { to: "/perfil", label: "Mi perfil", icon: UserCircle },
-  ];
-  const adminLinks = [
-    { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
-    { to: "/nueva-solicitud", label: "Nueva solicitud", icon: PlusCircle },
-    { to: "/mis-solicitudes", label: "Mis solicitudes", icon: ClipboardList },
-    { to: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
-    { to: "/admin/usuarios", label: "Usuarios", icon: Users },
-    { to: "/admin/organigrama", label: "Organigrama", icon: Network },
-    { to: "/perfil", label: "Mi perfil", icon: UserCircle },
-  ];
+  type NavSection = {
+    label: string;
+    icon?: typeof ShieldCheck;
+    links: { to: string; label: string; icon: typeof ShieldCheck }[];
+  };
+  const pedidosSection: NavSection = {
+    label: "Mis pedidos",
+    links: [
+      { to: "/nueva-solicitud", label: "Nueva solicitud", icon: PlusCircle },
+      { to: "/mis-solicitudes", label: "Mis solicitudes", icon: ClipboardList },
+    ],
+  };
+  const cuentaSection: NavSection = {
+    label: "Cuenta",
+    links: [{ to: "/perfil", label: "Mi perfil", icon: UserCircle }],
+  };
+  const adminSection: NavSection = {
+    label: "Administración",
+    icon: ShieldCheck,
+    links: [
+      { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/admin/solicitudes", label: "Solicitudes", icon: ClipboardList },
+      { to: "/admin/estadisticas", label: "Estadísticas", icon: BarChart3 },
+      { to: "/admin/usuarios", label: "Usuarios", icon: Users },
+      { to: "/admin/organigrama", label: "Organigrama", icon: Network },
+    ],
+  };
 
-  const links = isAdmin ? adminLinks : empLinks;
+  const sections = isAdmin
+    ? [adminSection, pedidosSection, cuentaSection]
+    : [pedidosSection, cuentaSection];
 
   const NavItems = () => (
-    <>
-      <div className="app-shell-nav-label px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {isAdmin ? (
-          <span className="flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5" /> Administración
-          </span>
-        ) : (
-          "Menú"
-        )}
-      </div>
-      {links.map((l) => {
-        const Icon = l.icon;
-        const active =
-          pathname === l.to ||
-          (l.to !== "/admin" && l.to !== "/perfil" && pathname.startsWith(l.to));
+    <div className="space-y-4">
+      {sections.map((section, index) => {
+        const SectionIcon = section.icon;
         return (
-          <Link
-            key={l.to}
-            to={l.to}
-            onClick={() => setOpen(false)}
+          <div
+            key={section.label}
             className={cn(
-              "app-shell-nav-item flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              active
-                ? "app-shell-nav-item-active bg-primary/15 text-primary"
-                : "text-foreground/80 hover:bg-accent/40 hover:text-foreground",
+              "space-y-0.5",
+              index > 0 && "app-shell-nav-divider border-t border-border/60 pt-3",
             )}
           >
-            <span className="flex items-center gap-3">
-              <Icon className="h-4 w-4" />
-              {l.label}
-            </span>
-            {l.to === "/admin/solicitudes" && pending > 0 && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                {pending}
-              </span>
-            )}
-          </Link>
+            <div className="app-shell-nav-label flex items-center gap-2 px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {SectionIcon && <SectionIcon className="h-3.5 w-3.5" />}
+              {section.label}
+            </div>
+            {section.links.map((l) => {
+              const Icon = l.icon;
+              const active =
+                pathname === l.to ||
+                (l.to !== "/admin" && l.to !== "/perfil" && pathname.startsWith(l.to));
+              return (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "app-shell-nav-item flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "app-shell-nav-item-active bg-primary/15 text-primary"
+                      : "text-foreground/80 hover:bg-accent/40 hover:text-foreground",
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon className="h-4 w-4" />
+                    {l.label}
+                  </span>
+                  {l.to === "/admin/solicitudes" && pending > 0 && (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {pending}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         );
       })}
-    </>
+    </div>
   );
 
   const ProfileMenu = () => (

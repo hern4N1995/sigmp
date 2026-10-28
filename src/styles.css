@@ -194,7 +194,8 @@
   color: #0b3d21;
 }
 
-.light .app-shell-header-divider {
+.light .app-shell-header-divider,
+.light .app-shell-nav-divider {
   border-color: #2f7a4e;
 }
 

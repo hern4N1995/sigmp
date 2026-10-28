@@ -111,11 +111,17 @@ function FilterCombobox({
           aria-expanded={open}
           className="w-full justify-between font-normal"
         >
-          <span className="truncate">{selected?.label ?? placeholder}</span>
+          <span className="truncate" title={selected?.label ?? placeholder}>
+            {selected?.label ?? placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      {/* Las rutas de unidades son largas: el panel crece más allá del botón. */}
+      <PopoverContent
+        className="w-[max(var(--radix-popover-trigger-width),min(32rem,calc(100vw-2rem)))] p-0"
+        align="start"
+      >
         <Command
           filter={(optionValue, search) => {
             const option = options.find((candidate) => candidate.value === optionValue);
@@ -137,10 +143,12 @@ function FilterCombobox({
               >
                 <Check
                   className={
-                    value === option.value ? "mr-2 h-4 w-4 opacity-100" : "mr-2 h-4 w-4 opacity-0"
+                    value === option.value
+                      ? "mr-2 h-4 w-4 shrink-0 self-start opacity-100"
+                      : "mr-2 h-4 w-4 shrink-0 self-start opacity-0"
                   }
                 />
-                {option.label}
+                <span className="whitespace-normal break-words">{option.label}</span>
               </CommandItem>
             ))}
           </CommandList>
@@ -190,7 +198,8 @@ function getTicketUnitLabel(
   const unitId = item.unidad_id ?? profile?.unidad_id;
   const unit = unitId ? unitsById.get(unitId) : undefined;
   if (profile?.es_jefe && unit) return unit.cargo_jefe;
-  return item.unidad_nombre_snapshot ?? unit?.ruta ?? "Sin unidad";
+  // Same shape as the snapshot (unit name only), not the full organigrama path.
+  return item.unidad_nombre_snapshot ?? unit?.nombre ?? "Sin unidad";
 }
 
 function Estadisticas() {
@@ -942,8 +951,8 @@ function Estadisticas() {
             </Button>
           </div>
 
-          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-            <div>
+          <div className="mb-5 grid gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-12">
+            <div className="lg:col-span-3">
               <label
                 htmlFor="report-start-date"
                 className="mb-1.5 block text-xs font-medium text-muted-foreground"
@@ -959,7 +968,7 @@ function Estadisticas() {
                 className="text-sm"
               />
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <label
                 htmlFor="report-end-date"
                 className="mb-1.5 block text-xs font-medium text-muted-foreground"
@@ -975,36 +984,7 @@ function Estadisticas() {
                 className="text-sm"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Dependencia (incluye subordinadas)
-              </label>
-              <FilterCombobox
-                value={reportDependency}
-                onValueChange={(value) => {
-                  setReportDependency(value);
-                  setReportArea("all");
-                }}
-                placeholder="Todas las dependencias"
-                searchPlaceholder="Buscar dependencia..."
-                emptyMessage="No se encontraron dependencias."
-                options={reportDependencyFilterOptions}
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Unidad
-              </label>
-              <FilterCombobox
-                value={reportArea}
-                onValueChange={setReportArea}
-                placeholder="Todas las unidades"
-                searchPlaceholder="Buscar unidad o dependencia..."
-                emptyMessage="No se encontraron unidades."
-                options={reportUnitFilterOptions}
-              />
-            </div>
-            <div>
+            <div className="lg:col-span-3">
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Estado
               </label>
@@ -1023,7 +1003,7 @@ function Estadisticas() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Urgencia
               </label>
@@ -1038,10 +1018,39 @@ function Estadisticas() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="lg:col-span-5">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Dependencia
+              </label>
+              <FilterCombobox
+                value={reportDependency}
+                onValueChange={(value) => {
+                  setReportDependency(value);
+                  setReportArea("all");
+                }}
+                placeholder="Todas las dependencias"
+                searchPlaceholder="Buscar dependencia..."
+                emptyMessage="No se encontraron dependencias."
+                options={reportDependencyFilterOptions}
+              />
+            </div>
+            <div className="lg:col-span-5">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Unidad
+              </label>
+              <FilterCombobox
+                value={reportArea}
+                onValueChange={setReportArea}
+                placeholder="Todas las unidades"
+                searchPlaceholder="Buscar unidad o dependencia..."
+                emptyMessage="No se encontraron unidades."
+                options={reportUnitFilterOptions}
+              />
+            </div>
             <Button
               type="button"
               variant="outline"
-              className="w-full self-end"
+              className="w-full self-end sm:col-span-2 lg:col-span-2"
               onClick={() => {
                 setReportStartDate("");
                 setReportEndDate("");
