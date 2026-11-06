@@ -562,7 +562,29 @@ body[data-scroll-locked][data-scroll-locked] {
   color-scheme: light;
 }
 
-/* Edge's native "show password" eye is always drawn black; lighten it in dark mode. */
-:root:not(.light) input[type="password"]::-ms-reveal {
-  filter: invert(0.85);
+/* Hide Edge's native "show password" eye; PasswordInput renders its own toggle in every browser. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Browsers paint autofilled fields with their own light background, ignoring the theme.
+   Cover it with an inset shadow in the card color and keep the theme's text color. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill {
+  /* Keep Tailwind's focus ring (also a box-shadow) alongside the fill. */
+  -webkit-box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 0 0 1000px var(--card) inset;
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 0 0 1000px var(--card) inset;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  transition: background-color 9999s ease-in-out 0s;
 }

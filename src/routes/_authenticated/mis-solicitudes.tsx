@@ -42,6 +42,7 @@ type Sol = {
   fecha_creacion: string;
   fecha_finalizacion: string | null;
   motivo_cancelacion: string | null;
+  resolucion: string | null;
   responsable?: Person;
   colaborador?: Person;
   calificacion?: Calificacion;
@@ -291,6 +292,12 @@ function MisSolicitudes() {
                   </Button>
                 )}
               </div>
+              {s.estado === "finalizado" && s.resolucion && (
+                <div className="mt-3 rounded-md border border-green-500/30 bg-green-500/5 p-3 text-sm">
+                  <div className="text-xs font-medium text-muted-foreground">Solución aplicada</div>
+                  <p className="mt-1 line-clamp-3 break-words whitespace-pre-wrap">{s.resolucion}</p>
+                </div>
+              )}
               {s.estado === "cancelado" && s.motivo_cancelacion && (
                 <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
                   <div className="text-xs font-medium text-muted-foreground">Motivo de cancelación</div>
@@ -339,6 +346,12 @@ function MisSolicitudes() {
                 <div className="mb-1 text-xs text-muted-foreground">Descripción</div>
                 <p className="break-words whitespace-pre-wrap rounded-lg border border-border bg-background p-3">{detail.descripcion}</p>
               </div>
+              {detail.estado === "finalizado" && detail.resolucion && (
+                <div>
+                  <div className="mb-1 text-xs text-muted-foreground">Solución aplicada por Sistemas</div>
+                  <p className="break-words whitespace-pre-wrap rounded-lg border border-green-500/30 bg-green-500/5 p-3">{detail.resolucion}</p>
+                </div>
+              )}
               {detail.calificacion?.puntaje && (
                 <div>
                   <div className="mb-1 text-xs text-muted-foreground">Tu calificación</div>

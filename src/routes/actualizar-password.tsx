@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -68,9 +68,8 @@ function UpdatePasswordPage() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="new-password">Nueva contraseña</Label>
-              <Input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 required
                 minLength={6}
                 value={password}
@@ -79,9 +78,8 @@ function UpdatePasswordPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password-confirmation">Repetir contraseña</Label>
-              <Input
+              <PasswordInput
                 id="password-confirmation"
-                type="password"
                 required
                 minLength={6}
                 value={confirmation}

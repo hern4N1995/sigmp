@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { UserCircle, User as UserIcon, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -219,9 +220,8 @@ function MiPerfil() {
           <form onSubmit={changePassword} className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="profile-new-password">Nueva contraseña</Label>
-              <Input
+              <PasswordInput
                 id="profile-new-password"
-                type="password"
                 autoComplete="new-password"
                 minLength={6}
                 required
@@ -232,9 +232,8 @@ function MiPerfil() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="profile-password-confirmation">Confirmar contraseña</Label>
-              <Input
+              <PasswordInput
                 id="profile-password-confirmation"
-                type="password"
                 autoComplete="new-password"
                 minLength={6}
                 required
