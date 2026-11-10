@@ -89,7 +89,9 @@ Deno.serve(async (req) => {
         .sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload,
-          { TTL: 60 * 60 * 24, urgency: urgente ? "high" : "normal" },
+          // "high" siempre: con "normal", Android en reposo (Doze) retiene el aviso
+          // hasta que se vuelve a usar el teléfono.
+          { TTL: 60 * 60 * 24, urgency: "high" },
         )
         .catch((err: { statusCode?: number }) => {
           // 404/410: el navegador dio de baja la suscripción.
