@@ -13,10 +13,13 @@ import {
   Users,
   UserCircle,
   Network,
+  BellRing,
+  BellOff,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { removePushSubscription, usePushNotifications } from "@/hooks/use-push-notifications";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/footer";
 import { cn } from "@/lib/utils";
@@ -73,6 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const porCalificar = useSolicitudesPorCalificar();
+  const push = usePushNotifications(isAdmin);
   const [calificando, setCalificando] = useState<SolicitudPorCalificar | null>(null);
   const previousPending = useRef<number | null>(null);
   const notificationActive = useRef(false);
@@ -177,6 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
+      await removePushSubscription();
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success("Sesión cerrada.");
@@ -270,6 +275,45 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 
+  const togglePush = async () => {
+    if (push.status === "ios-needs-install") {
+      toast.info(
+        "En iPhone, primero agregá el sistema a la pantalla de inicio (Safari → Compartir → Agregar a inicio) y activá los avisos desde ese ícono.",
+        { duration: 10000 },
+      );
+      return;
+    }
+    if (push.status === "denied") {
+      toast.error(
+        "Las notificaciones están bloqueadas para este sitio. Habilitalas desde la configuración del navegador o de la app y volvé a intentar.",
+        { duration: 10000 },
+      );
+      return;
+    }
+    try {
+      if (push.status === "subscribed") {
+        await push.unsubscribe();
+        toast.success("Avisos desactivados en este dispositivo.");
+      } else if (await push.subscribe()) {
+        toast.success(
+          "Listo. Vas a recibir un aviso en este dispositivo con cada solicitud nueva.",
+        );
+      } else {
+        toast.error("No se otorgó permiso para mostrar notificaciones.");
+      }
+    } catch (error) {
+      console.error("No se pudieron configurar las notificaciones push.", error);
+      toast.error("No se pudieron configurar los avisos. Intentá nuevamente.");
+    }
+  };
+
+  const showPushItem =
+    isAdmin &&
+    (push.status === "subscribed" ||
+      push.status === "unsubscribed" ||
+      push.status === "denied" ||
+      push.status === "ios-needs-install");
+
   const ProfileMenu = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -299,6 +343,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
           Tema {theme === "dark" ? "claro" : "oscuro"}
         </DropdownMenuItem>
+        {showPushItem && (
+          <DropdownMenuItem onClick={togglePush} disabled={push.busy}>
+            {push.busy ? (
+              <Spinner size="sm" />
+            ) : push.status === "subscribed" ? (
+              <BellOff className="mr-2 h-4 w-4" />
+            ) : (
+              <BellRing className="mr-2 h-4 w-4" />
+            )}
+            {push.status === "subscribed"
+              ? "Desactivar avisos en este dispositivo"
+              : "Activar avisos en este dispositivo"}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleLogout}

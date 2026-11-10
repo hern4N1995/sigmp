@@ -1,1 +1,5 @@
 project_id = "bnzgjgvjepqorbrpbflk"
+
+# La invoca el trigger de la base con un secreto propio (x-webhook-secret), no con JWT.
+[functions.notificar-solicitud]
+verify_jwt = false
