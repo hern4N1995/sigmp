@@ -96,7 +96,7 @@ function AuthPage() {
         });
         if (error) throw error;
       }
-      navigate({ to: "/", replace: true });
+      await navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error de autenticación");
     } finally {

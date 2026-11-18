@@ -161,7 +161,10 @@ function RootComponent() {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        router.invalidate();
+        // En /auth la propia página navega tras el login; invalidar aquí compite con
+        // esa navegación y puede dejar al usuario en la pantalla de ingreso.
+        if (event === "SIGNED_IN" && router.state.location.pathname === "/auth") return;
+        void router.invalidate();
       }
     });
     return () => sub.subscription.unsubscribe();
